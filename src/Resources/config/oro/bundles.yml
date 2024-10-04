@@ -1,0 +1,2 @@
+bundles:
+    - { name: Gally\OroPlugin\GallyOroBundle, priority: 255 }

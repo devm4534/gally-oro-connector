@@ -1,0 +1,37 @@
+parameters:
+    gally: # Todo manage conf
+        baseUri: 'https://api.gally.local'
+        user: 'admin@example.com'
+        password: 'apassword'
+
+services:
+    Gally\OroPlugin\Provider\CatalogProvider:
+        arguments:
+            - '@doctrine.orm.entity_manager'
+            - '@oro_website.provider.website_localization'
+            - '@oro_pricing.provider.website_currency_provider'
+
+    Gally\OroPlugin\Provider\SourceFieldProvider:
+        arguments:
+            - '@oro_entity_config.manager.attribute_manager'
+            - '@oro_entity_config.provider.entity'
+            - '@oro_entity_config.registry.attribute_type'
+            - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@translator'
+            - '@oro_locale.settings'
+
+    Gally\OroPlugin\Provider\SourceFieldOptionProvider:
+        arguments:
+            - '@doctrine.orm.entity_manager'
+            - '@oro_website.provider.website_localization'
+            - '@oro_pricing.provider.website_currency_provider'
+
+    Gally\OroPlugin\Command\StructureSync:
+        arguments:
+            - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
+            - '@Gally\OroPlugin\Provider\SourceFieldOptionProvider'
+            - '%gally%'
+            - '%kernel.environment%'
+        tags:
+            - { name: console.command }

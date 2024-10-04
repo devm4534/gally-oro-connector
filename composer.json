@@ -1,0 +1,26 @@
+{
+    "name": "gally/oro-plugin",
+    "description": "Oro connector for Gally",
+    "homepage": "https://meetgally.com",
+    "type": "oro-platform-plugin",
+    "license": "OSL-3.0",
+    "version": "2.0.0",
+    "extra": {
+        "oro-plugin-class": "Gally\\OroPlugin\\GallyOroPlugin",
+        "author": "Gally Team",
+        "label": {
+            "en-GB": "Gally Plugin"
+        }
+    },
+    "require": {
+        "php": "~8.1.0 || ~8.2.0 || ~8.3.0",
+        "gally/sdk": "^2.0.0"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Gally\\OroPlugin\\": "src/"
+        }
+    }
+}
