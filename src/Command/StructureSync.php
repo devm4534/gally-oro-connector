@@ -21,19 +21,13 @@ class StructureSync extends Command
     /** @var string */
     protected static $defaultName = 'gally:structure-sync';
 
-    protected StructureSynchonizer $synchonizer;
-
     public function __construct(
         private CatalogProvider $catalogProvider,
         private SourceFieldProvider $sourceFieldProvider,
         private SourceFieldOptionProvider $sourceFieldOptionProvider,
-        array $gallyConf,
-        string $envCode,
+        private StructureSynchonizer $synchonizer,
     ) {
         parent::__construct();
-
-        $gallyConfig = new Configuration(...$gallyConf);
-        $this->synchonizer = new StructureSynchonizer($gallyConfig, $envCode);
     }
 
     protected function configure(): void

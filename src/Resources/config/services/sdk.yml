@@ -1,0 +1,15 @@
+services:
+    Gally\Sdk\Client\Configuration:
+        factory: [null, 'create']
+        arguments:
+            $gallyConf: '%gally%'
+
+    Gally\Sdk\Service\StructureSynchonizer:
+        arguments:
+            - '@Gally\Sdk\Client\Configuration'
+            - '%kernel.environment%'
+
+    Gally\Sdk\Service\IndexOperation:
+        arguments:
+            - '@Gally\Sdk\Client\Configuration'
+            - '%kernel.environment%'

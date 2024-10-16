@@ -16,6 +16,7 @@ use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\ProductBundle\Entity\Brand;
 use Oro\Bundle\ProductBundle\Entity\Product;
+use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\WebsiteSearchBundle\Attribute\Type;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -24,10 +25,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class SourceFieldProvider
 {
+    // Get this from conf todo
     private array $entities = [
-        'category' => Category::class,
-        'brand'    => Brand::class,
-        'product'  => Product::class,
+        Category::class => 'category',
+        Brand::class    => 'brand',
+        Product::class  => 'product',
     ];
 
     private array $typeMapping = [
@@ -70,8 +72,9 @@ class SourceFieldProvider
      */
     public function provide(): iterable
     {
-        foreach ($this->entities as $code => $entityClass) {
-            $metadata = new Metadata($code);
+        // Todo get entity list as in indexation
+        foreach (array_keys($this->entities) as $entityClass) {
+            $metadata = $this->getMetadataFromEntityClass($entityClass);
             $attributes = $this->attributeManager->getAttributesByClass($entityClass);
             foreach ($attributes as $attribute) {
                 $fieldConfig = $this->configProvider->getConfig($entityClass, $attribute->getFieldName());
@@ -89,6 +92,11 @@ class SourceFieldProvider
         }
 
         return [];
+    }
+
+    public function getMetadataFromEntityClass(string $entityClass): Metadata
+    {
+        return new Metadata($this->entities[$entityClass]); // Todo manage undefined
     }
 
     private function getDefaultLocale(): string

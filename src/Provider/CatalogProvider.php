@@ -42,7 +42,7 @@ class CatalogProvider
 
         foreach ($websites as $website) {
             $localizations = $this->websiteLocalizationProvider->getLocalizations($website);
-            $catalog = new Catalog('website_' . $website->getId(), $website->getName());
+            $catalog = new Catalog($this->getCatalogCodeFromWebsiteId($website->getId()), $website->getName());
             foreach ($localizations as $localization) {
                 yield new LocalizedCatalog(
                     $catalog,
@@ -53,5 +53,10 @@ class CatalogProvider
                 );
             }
         }
+    }
+
+    public function getCatalogCodeFromWebsiteId(int $websiteId): string
+    {
+        return 'website_' . $websiteId;
     }
 }
