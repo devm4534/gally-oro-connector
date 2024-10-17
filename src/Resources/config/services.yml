@@ -50,10 +50,6 @@ services:
     oro_website_search.gally.indexer:
         class: 'Gally\OroPlugin\Engine\GallyIndexer'
         arguments:
-#            $indexDataProvider: '@oro_website_search.engine.gally.index_data'
-#            $catalogProvider: '@Gally\OroPlugin\Provider\CatalogProvider'
-#            $sourceFieldProvider: '@Gally\OroPlugin\Provider\SourceFieldProvider'
-#            $indexOperation: '@Gally\Sdk\Service\IndexOperation'
             - '@oro_entity.doctrine_helper'
             - '@oro_website_search.provider.search_mapping'
             - '@oro_website_search.engine.entity_dependencies_resolver'
@@ -86,23 +82,38 @@ services:
         tags:
             - { name: 'oro_website_search.engine', engine_name: 'gally' }
 
-    oro_website_search.driver.customer_partial_update_driver.gally:
-        class: 'Oro\Bundle\CustomerProBundle\Driver\ElasticSearchCustomerPartialUpdateDriver'
+    Gally\OroPlugin\Decorator\ProductIndexFieldsProvider:
+        decorates: oro_product.provider.index_fields
         arguments:
-            - '@oro_website_search.provider.placeholder_provider'
-            - '@oro_visibility.visibility.provider.product_visibility_provider'
-            - '@oro_entity.doctrine_helper'
-            - '@oro_website_elastic_search.partial_update.manager'
-        tags:
-            - { name: 'oro_website_search.customer_partial_update_driver', engine_name: 'gally' }
+            - '@.inner'
 
-    oro_website_elasticsearch.engine.parameters_provider:
-        class: 'Gally\OroPlugin\Provider\GallyEngineParametersProvider'
-        public: true
-        arguments:
-            - '@oro_website_search.engine.parameters'
-            - '@parameter_bag'
-            - 'oro_website_search.engine_parameters'
+    oro_product.provider.index_fields:
+        class: 'Oro\Bundle\ProductBundle\Search\ProductIndexFieldsProvider'
+        public: false
+        # These attributes are forced to be indexed as a separate fields because they are used at main product grid of front store
+        calls:
+            - [addForceIndexed,  ['sku']]
+            - [addForceIndexed,  ['names']]
+            - [addForceIndexed,  ['shortDescriptions']]
+            - [addForceIndexed,  ['newArrival']]
+
+#    oro_website_search.driver.customer_partial_update_driver.gally:
+#        class: 'Oro\Bundle\CustomerProBundle\Driver\ElasticSearchCustomerPartialUpdateDriver'
+#        arguments:
+#            - '@oro_website_search.provider.placeholder_provider'
+#            - '@oro_visibility.visibility.provider.product_visibility_provider'
+#            - '@oro_entity.doctrine_helper'
+#            - '@oro_website_elastic_search.partial_update.manager'
+#        tags:
+#            - { name: 'oro_website_search.customer_partial_update_driver', engine_name: 'gally' }
+#
+#    oro_website_elasticsearch.engine.parameters_provider:
+#        class: 'Gally\OroPlugin\Provider\GallyEngineParametersProvider'
+#        public: true
+#        arguments:
+#            - '@oro_website_search.engine.parameters'
+#            - '@parameter_bag'
+#            - 'oro_website_search.engine_parameters'
 
 #    oro_website_elastic_search.attribute.filter.attribute_mapping_filter:
 #        class: Oro\Bundle\WebsiteElasticSearchBundle\Attribute\Filter\AttributeMappingFilter
@@ -133,8 +144,6 @@ services:
 #        arguments:
 #            - '@.inner'
 #            - '@doctrine'
-
-
 
 #    oro_website_elastic_search.result_set_iterator.factory:
 #        class: Oro\Bundle\ElasticSearchBundle\ResultSetIterator\ResultSetIteratorFactory

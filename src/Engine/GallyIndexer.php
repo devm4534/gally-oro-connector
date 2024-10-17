@@ -158,14 +158,6 @@ class GallyIndexer extends AbstractIndexer
         return $result;
     }
 
-
-
-
-
-
-
-
-
     /**
      * @return LocalizedCatalog[]
      */
@@ -184,8 +176,6 @@ class GallyIndexer extends AbstractIndexer
         $catalogCode = $this->catalogProvider->getCatalogCodeFromWebsiteId($websiteId);
         return $this->localizedCatalogByWebsite[$catalogCode]; //todo if undefined ??
     }
-
-
 
 //    public function save($entity, array $context = [])
 //    {
@@ -221,16 +211,21 @@ class GallyIndexer extends AbstractIndexer
     {
         // TODO: Implement saveIndexData() method.
 
-//        $realAlias = $this->getEntityAlias($entityClass, $context);
-//
-//        if (null === $realAlias || empty($entitiesData)) {
-//            return [];
-//        }
-//
-//        $body = [];
-//
+        $realAlias = $this->getEntityAlias($entityClass, $context);
+
+        if (null === $realAlias || empty($entitiesData)) {
+            return [];
+        }
+
+        $body = [];
+
 //        $indexName = $this->indexAgent->getIndexNameByAlias($realAlias);
-//
+        $indexName = 'toto';
+        $bulk = array_map(fn ($data) => json_encode($data), $entitiesData);
+        $index = $this->indicesByLocale[$context[self::CONTEXT_LOCALE_CODE]];
+        $this->indexOperation->executeBulk($index, $bulk);
+
+
 //        foreach ($entitiesData as $entityId => $entityData) {
 //            $indexIdentifier = ['_id' => $entityId];
 //
@@ -266,6 +261,41 @@ class GallyIndexer extends AbstractIndexer
 //            }
 //        }
 
+
+        // Bulk data in each indices
+//        $itemsCount = 0;
+//        $entityIds = [];
+//        $indexedContextEntityIds = [];
+//        $indexedItemsNum = 0;
+//        // $batchSize = $this->configuration->getBatchSize($metadata, $localizedCatalog); Todo manage batch size config
+//        $batchSize = 10;
+//        foreach ($iterator as $entity) {
+//            $entityIds[] = $entity['id'];
+//            $itemsCount++;
+//            if (\count($entityIds) >= $batchSize) {
+//                $indexedEntityIds = $this->indexEntities($entityClass, $entityIds, $context, $temporaryAlias);
+//                $indexedItemsNum += count($indexedEntityIds);
+//                if ($contextEntityIds) {
+//                    $indexedContextEntityIds = array_merge($indexedContextEntityIds, $indexedEntityIds);
+//                }
+////                $this->indexOperation->executeBulk($index, $bulk);
+//                $entityIds = [];
+//                $entityManager->clear($entityClass);
+//            }
+//        }
+//
+//        if ($itemsCount % $this->getBatchSize() > 0) {
+//            $indexedEntityIds = $this->indexEntities($entityClass, $entityIds, $context, $temporaryAlias);
+//            $indexedItemsNum += count($indexedEntityIds);
+//            if ($contextEntityIds) {
+//                $indexedContextEntityIds = array_merge($indexedContextEntityIds, $indexedEntityIds);
+//            }
+////            $this->indexOperation->executeBulk($index, $bulk);
+//            $entityManager->clear($entityClass);
+//        }
+
+
+
         return array_keys($entitiesData);
     }
 
@@ -283,7 +313,7 @@ class GallyIndexer extends AbstractIndexer
 
     protected function renameIndex($temporaryAlias, $currentAlias): void
     {
-        foreach ($this->indicesByLocalizedCatalog as $index) {
+        foreach ($this->indicesByLocale as $index) {
             $this->indexOperation->refreshIndex($index);
             $this->indexOperation->installIndex($index);
         }

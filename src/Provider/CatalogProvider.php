@@ -46,7 +46,7 @@ class CatalogProvider
             foreach ($localizations as $localization) {
                 yield new LocalizedCatalog(
                     $catalog,
-                    'website_' . $website->getId() . '_' . $localization->getLanguageCode(),
+                    'website_' . $website->getId() . '_' . $localization->getFormattingCode(),
                     $localization->getName(),
                     $localization->getFormattingCode(),
                     $this->currencyProvider->getWebsiteDefaultCurrency($website->getId())

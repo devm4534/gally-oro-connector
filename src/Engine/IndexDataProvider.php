@@ -71,26 +71,18 @@ class IndexDataProvider extends BaseIndexDataProvider
         $preparedIndexData = [];
 
         foreach ($indexData as $entityId => $fieldsValues) {
-            $allTextFieldNames = [];
 
             foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
                 $type = $this->getFieldConfig($entityConfig, $fieldName, 'type');
 
                 foreach ($this->toArray($values) as $value) {
                     $singleValueFieldName = $fieldName;
-                    $addToAllText = $value['all_text'];
                     $value = $value['value'];
                     $placeholders = [];
 
                     if ($value instanceof PlaceholderValue) {
                         $placeholders = $value->getPlaceholders();
                         $value = $value->getValue();
-                    }
-
-                    if ($this->isAllTextCollected($type, $addToAllText)) {
-                        $allTextFieldName = $this->placeholder->replace($allTextFieldName, $placeholders);
-                        $allTextFieldNames[$allTextFieldName] = $allTextFieldName;
-                        $this->setIndexValue($preparedIndexData, $entityId, $allTextFieldName, $value, $type);
                     }
 
                     if (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
@@ -100,33 +92,24 @@ class IndexDataProvider extends BaseIndexDataProvider
                 }
             }
 
-            unset($allTextFieldNames[$allTextL10N]);
+            $preparedIndexData[$entityId] = $preparedIndexData[$entityId] ?? [];
 
-            $allTextValue = $this->getIndexValue($preparedIndexData, $entityId, $allTextL10N);
-            foreach ($allTextFieldNames as $allTextFieldName) {
-                $this->setIndexValue($preparedIndexData, $entityId, $allTextFieldName, $allTextValue);
+            // Spe gally
+            $preparedIndexData[$entityId]['id'] = $entityId;
+            if (array_key_exists('image_product_small', $preparedIndexData[$entityId])) {
+                $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_small'];
             }
 
-            unset($preparedIndexData[$entityId][Query::TYPE_TEXT][$allTextL10N]);
-            $preparedIndexData[$entityId] = $this->squashAllTextFields($preparedIndexData[$entityId] ?? []);
-
-            // add ID field for full indexation
-            if (empty($context[AbstractIndexer::CONTEXT_FIELD_GROUPS])) {
-                $preparedIndexData[$entityId][Query::TYPE_INTEGER][Indexer::ID_FIELD] = $entityId;
-            }
+            // Todo provisoir
+            $preparedIndexData[$entityId]['name'] = 'Blop #' . $entityId;
+            $preparedIndexData[$entityId]['price'] = ['price' => 0, 'group_id' => 0];
+            $preparedIndexData[$entityId]['stock'] = ['status' => true, 'qty' => 0];
+            unset($preparedIndexData[$entityId]['featured']); // Todo manage boolean
+            unset($preparedIndexData[$entityId]['newArrival']); // Todo manage boolean
+            unset($preparedIndexData[$entityId]['brand']); // Todo manage complexe object
         }
 
         return $preparedIndexData;
-    }
-
-    /**
-     * @param string $fieldType
-     * @param bool $addToAllText
-     * @return bool
-     */
-    private function isAllTextCollected($fieldType, $addToAllText)
-    {
-        return $fieldType === Query::TYPE_TEXT && $addToAllText;
     }
 
     /**
@@ -140,23 +123,6 @@ class IndexDataProvider extends BaseIndexDataProvider
         }
 
         return [$value];
-    }
-
-    /**
-     * @param array $fieldsValues
-     * @return array
-     */
-    private function squashAllTextFields(array $fieldsValues)
-    {
-        if (!empty($fieldsValues[Query::TYPE_TEXT])) {
-            foreach ($fieldsValues[Query::TYPE_TEXT] as $fieldName => $fieldValue) {
-                if (str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
-                    $fieldsValues[Query::TYPE_TEXT][$fieldName] = $this->updateAllTextFieldValue($fieldValue);
-                }
-            }
-        }
-
-        return $fieldsValues;
     }
 
     /**
@@ -179,21 +145,7 @@ class IndexDataProvider extends BaseIndexDataProvider
             $value = $this->updateFieldValue($existingValue, $value, $type);
         }
 
-        $preparedIndexData[$entityId][$type][$fieldName] = $value;
-    }
-
-    /**
-     * @param string|array $value
-     *
-     * @return string
-     */
-    private function updateAllTextFieldValue($value)
-    {
-        if (is_array($value)) {
-            $value = implode(' ', $value);
-        }
-
-        return implode(' ', array_unique(explode(' ', $value)));
+        $preparedIndexData[$entityId][$fieldName] = $value;
     }
 
     /**
@@ -292,14 +244,6 @@ class IndexDataProvider extends BaseIndexDataProvider
             }
 
             return $value;
-        }
-
-        if ($type === Query::TYPE_TEXT && str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
-            $value = (string)$value;
-            if ($value) {
-                $value = $this->htmlTagHelper->stripTags((string)$value);
-                $value = $this->htmlTagHelper->stripLongWords($value);
-            }
         }
 
         return $value;

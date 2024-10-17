@@ -74,6 +74,8 @@ class SourceFieldProvider
     {
         // Todo get entity list as in indexation
         foreach (array_keys($this->entities) as $entityClass) {
+
+            // Todo se baser sur le mapping généré pour avoir les champs action er revenue
             $metadata = $this->getMetadataFromEntityClass($entityClass);
             $attributes = $this->attributeManager->getAttributesByClass($entityClass);
             foreach ($attributes as $attribute) {
