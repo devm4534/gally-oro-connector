@@ -9,15 +9,15 @@ use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
 use Oro\Bundle\CatalogBundle\Entity\Category;
-use Oro\Bundle\EntityConfigBundle\Attribute\AttributeTypeRegistry;
-use Oro\Bundle\EntityConfigBundle\Entity\FieldConfigModel;
-use Oro\Bundle\EntityConfigBundle\Manager\AttributeManager;
+use Oro\Bundle\EntityConfigBundle\Exception\RuntimeException;
 use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
-use Oro\Bundle\ProductBundle\Entity\Brand;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
-use Oro\Bundle\WebsiteSearchBundle\Attribute\Type;
+use Oro\Bundle\SearchBundle\Query\Query;
+use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
+use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderRegistry;
+use Oro\Bundle\WebsiteSearchBundle\Placeholder\WebsiteIdPlaceholder;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -28,35 +28,23 @@ class SourceFieldProvider
     // Get this from conf todo
     private array $entities = [
         Category::class => 'category',
-        Brand::class    => 'brand',
         Product::class  => 'product',
     ];
 
     private array $typeMapping = [
-        Type\BooleanSearchableAttributeType::class      => SourceField::TYPE_BOOLEAN,
-        Type\DateSearchableAttributeType::class         => SourceField::TYPE_DATE,
-        Type\DecimalSearchableAttributeType::class      => SourceField::TYPE_FLOAT,
-        Type\EnumSearchableAttributeType::class         => SourceField::TYPE_SELECT,
-        Type\FileSearchableAttributeType::class         => SourceField::TYPE_TEXT,
-        Type\IntegerSearchableAttributeType::class      => SourceField::TYPE_INT,
-        Type\ManyToManySearchableAttributeType::class   => SourceField::TYPE_SELECT,
-        Type\ManyToOneSearchableAttributeType::class    => SourceField::TYPE_SELECT,
-        Type\MultiEnumSearchableAttributeType::class    => SourceField::TYPE_SELECT,
-        Type\OneToManySearchableAttributeType::class    => SourceField::TYPE_SELECT,
-        Type\PercentSearchableAttributeType::class      => SourceField::TYPE_FLOAT,
-        Type\StringSearchableAttributeType::class       => SourceField::TYPE_TEXT,
-        Type\TextSearchableAttributeType::class         => SourceField::TYPE_TEXT,
-        Type\WYSIWYGSearchableAttributeType::class      => SourceField::TYPE_TEXT,
+        Query::TYPE_TEXT => SourceField::TYPE_TEXT,
+        Query::TYPE_DECIMAL => SourceField::TYPE_FLOAT,
+        Query::TYPE_INTEGER => SourceField::TYPE_INT,
+        Query::TYPE_DATETIME => SourceField::TYPE_DATE,
     ];
-
 
     /** @var LocalizedCatalog[] */
     private array $localizedCatalogs = [];
 
     public function __construct(
-        private AttributeManager $attributeManager,
+        private SearchMappingProvider $mappingProvider,
+        private PlaceholderRegistry $placeholderRegistry,
         private ConfigProvider $configProvider,
-        private AttributeTypeRegistry $attributeTypeRegistry,
         private CatalogProvider $catalogProvider,
         private TranslatorInterface $translator,
         private LocaleSettings $localeSettings,
@@ -72,44 +60,82 @@ class SourceFieldProvider
      */
     public function provide(): iterable
     {
-        // Todo get entity list as in indexation
-        foreach (array_keys($this->entities) as $entityClass) {
+        foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
 
-            // Todo se baser sur le mapping généré pour avoir les champs action er revenue
+            if ($entityClass === SavedSearch::class) {
+                // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
+                return;
+            }
+
             $metadata = $this->getMetadataFromEntityClass($entityClass);
-            $attributes = $this->attributeManager->getAttributesByClass($entityClass);
-            foreach ($attributes as $attribute) {
-                $fieldConfig = $this->configProvider->getConfig($entityClass, $attribute->getFieldName());
-                $labelKey = $fieldConfig->get('label');
+            $entityConfig = $this->mappingProvider->getEntityConfig($entityClass);
+
+            foreach ($entityConfig['fields'] as $fieldData) {
+                $fieldName = $this->cleanFieldName($fieldData['name']);
+                $fieldType = $this->typeMapping[$fieldData['type']] ?? SourceField::TYPE_TEXT;
+
+                if (str_ends_with($fieldName, '_enum')) {
+                    $fieldName = preg_replace('/_enum$/', '', $fieldName);
+                    $fieldType = SourceField::TYPE_SELECT;
+                }
+
+                try {
+                    $fieldConfig = $this->configProvider->getConfig($entityClass, $fieldName);
+                    $labelKey = $fieldConfig->get('label');
+                } catch (RuntimeException) {
+                    $labelKey = $fieldName;
+                }
                 $defaultLabel = $this->translator->trans($labelKey, [], null,  $this->getDefaultLocale());
+
+                if (!array_key_exists($fieldData['type'], $this->typeMapping)) {
+                    throw new \LogicException(
+                        sprintf(
+                            'Type %s not managed for field %s of entity %s.',
+                            $fieldData['type'],
+                            $fieldName,
+                            $entityClass
+                        )
+                    );
+                }
 
                 yield new SourceField(
                     $metadata,
-                    $attribute->getFieldName(),
-                    $this->getGallyType($attribute),
+                    $fieldName,
+                    $fieldType,
                     $defaultLabel,
                     $this->getLabels($labelKey, $defaultLabel),
                 );
             }
         }
-
-        return [];
     }
 
     public function getMetadataFromEntityClass(string $entityClass): Metadata
     {
-        return new Metadata($this->entities[$entityClass]); // Todo manage undefined
+        if (array_key_exists($entityClass, $this->entities)) {
+            $entityCode = $this->entities[$entityClass];
+        } else {
+            $entityCode = $this->mappingProvider->getEntityAlias($entityClass) ?: $entityClass;
+            $entityCode = trim(
+                str_replace(WebsiteIdPlaceholder::NAME, '', $entityCode),
+                '_'
+            );
+        }
+
+        return new Metadata($entityCode);
+    }
+
+    private function cleanFieldName(string $fieldName): string
+    {
+        foreach ($this->placeholderRegistry->getPlaceholders() as $placeholder) {
+            $fieldName = $placeholder->replace($fieldName, [$placeholder->getPlaceholder() => null]);
+        }
+
+        return trim($fieldName, '._-');
     }
 
     private function getDefaultLocale(): string
     {
         return $this->localeSettings->getLocaleWithRegion();
-    }
-
-    private function getGallyType(FieldConfigModel $attribute): string
-    {
-        $oroType = $this->attributeTypeRegistry->getAttributeType($attribute);
-        return $oroType ? ($this->typeMapping[get_class($oroType)] ?? SourceField::TYPE_TEXT) : SourceField::TYPE_TEXT;
     }
 
     /**

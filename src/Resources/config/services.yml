@@ -16,9 +16,9 @@ services:
 
     Gally\OroPlugin\Provider\SourceFieldProvider:
         arguments:
-            - '@oro_entity_config.manager.attribute_manager'
+            - '@oro_website_search.provider.search_mapping'
+            - '@oro_website_search.placeholder.registry'
             - '@oro_entity_config.provider.entity'
-            - '@oro_entity_config.registry.attribute_type'
             - '@Gally\OroPlugin\Provider\CatalogProvider'
             - '@translator'
             - '@oro_locale.settings'
