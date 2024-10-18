@@ -3,12 +3,18 @@
 namespace Gally\OroPlugin\Engine;
 
 use Doctrine\ORM\QueryBuilder;
+use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
+use Oro\Bundle\LocaleBundle\Entity\Localization;
+use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
 use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
+use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider as BaseIndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Event;
 use Oro\Bundle\WebsiteSearchBundle\Helper\PlaceholderHelper;
+use Oro\Bundle\WebsiteSearchBundle\Placeholder\AssignIdPlaceholder;
+use Oro\Bundle\WebsiteSearchBundle\Placeholder\LocalizationIdPlaceholder;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderInterface;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderValue;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -17,17 +23,23 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 /**
  * Class is responsible for triggering all events during indexation
  * and returning all collected and prepared for saving event data
- *
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
  */
 class IndexDataProvider extends BaseIndexDataProvider
 {
+    // Todo get from conf
+    protected array $attributeCodeMapping = [
+        'names' => 'name',
+        'descriptions' => 'description',
+    ];
+
     public function __construct(
         private EventDispatcherInterface $eventDispatcher,
         private EntityAliasResolver $entityAliasResolver,
         private PlaceholderInterface $placeholder,
         HtmlTagHelper $htmlTagHelper,
-        private PlaceholderHelper $placeholderHelper
+        private PlaceholderHelper $placeholderHelper,
+        private DoctrineHelper $doctrineHelper,
+        private LocalizationHelper $localizationHelper,
     ) {
         parent::__construct($eventDispatcher, $entityAliasResolver, $placeholder, $htmlTagHelper, $placeholderHelper);
     }
@@ -67,20 +79,43 @@ class IndexDataProvider extends BaseIndexDataProvider
     private function prepareIndexData(array $indexData, array $entityConfig, array $context): array
     {
         $preparedIndexData = [];
+        $nodeIds = [];
+
+        /** @var Localization $localization */
+        $localization = $context[GallyIndexer::CONTEXT_LOCALIZATION];
 
         foreach ($indexData as $entityId => $fieldsValues) {
+
+            $categories = [];
 
             foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
                 $type = $this->getFieldConfig($entityConfig, $fieldName, 'type');
 
                 foreach ($this->toArray($values) as $value) {
-                    $singleValueFieldName = $fieldName;
+                    $singleValueFieldName = $this->cleanFieldName($fieldName);
                     $value = $value['value'];
                     $placeholders = [];
 
                     if ($value instanceof PlaceholderValue) {
                         $placeholders = $value->getPlaceholders();
                         $value = $value->getValue();
+                    }
+
+                    if (array_key_exists(LocalizationIdPlaceholder::NAME, $placeholders)) {
+                        if ($localization->getId() != $placeholders[LocalizationIdPlaceholder::NAME]) {
+                            continue;
+                        }
+                    }
+
+                    if (str_starts_with($fieldName, 'assigned_to.')) {
+                        $nodeId = 'node_' . $placeholders[AssignIdPlaceholder::NAME];
+                        $categories[$nodeId]['id'] = $nodeId;
+                        $nodeIds[] = $placeholders[AssignIdPlaceholder::NAME];
+                        continue;
+                    } elseif (str_starts_with($fieldName, 'assigned_to_sort_order.')) {
+                        $nodeId = 'node_' . $placeholders[AssignIdPlaceholder::NAME];
+                        $categories[$nodeId]['position'] = (int) $value;
+                        continue;
                     }
 
                     if (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
@@ -104,9 +139,48 @@ class IndexDataProvider extends BaseIndexDataProvider
             }
             $preparedIndexData[$entityId]['price'] = ['price' => 0, 'group_id' => 0];
             $preparedIndexData[$entityId]['stock'] = ['status' => true, 'qty' => 0];
+
+            if (!empty($categories)) {
+                $preparedIndexData[$entityId]['category'] = array_values($categories);
+            }
+        }
+
+        if (!empty($nodeIds)) {
+            $this->addCategoryNames($preparedIndexData, $nodeIds, $localization);
         }
 
         return $preparedIndexData;
+    }
+
+    private function cleanFieldName(string $fieldName): string
+    {
+        $fieldName = trim(
+            $this->placeholder->replace($fieldName, [LocalizationIdPlaceholder::NAME => null]),
+            '_.'
+        );
+
+        return $this->attributeCodeMapping[$fieldName] ?? $fieldName;
+    }
+
+    private function addCategoryNames(array &$preparedIndexData, array $nodeIds, Localization $localization): void
+    {
+        $entityRepository = $this->doctrineHelper->getEntityRepositoryForClass(ContentNode::class);
+        $nodeNames = [];
+
+        /** @var ContentNode $node */
+        foreach ($entityRepository->findBy(['id' => $nodeIds]) as $node) {
+            $name = $this->localizationHelper->getLocalizedValue($node->getTitles(), $localization)->getString();
+            $nodeNames['node_' . $node->getId()] = $name;
+        }
+
+        foreach ($preparedIndexData as $entityId => $entityData) {
+            foreach ($entityData['category'] ?? [] as $index => $categoryData) {
+                if (array_key_exists($categoryData['id'], $nodeNames)) {
+                    $preparedIndexData[$entityId]['category'][$index]['name'] = $nodeNames[$categoryData['id']];
+                }
+            }
+        }
+        // Todo manage undefined : certain ne semble pas être des contentNode : le 40 ?
     }
 
     /**
