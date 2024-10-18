@@ -9,20 +9,27 @@ use Gally\OroPlugin\Provider\SourceFieldProvider;
 use Gally\Sdk\Entity\Index;
 use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Service\IndexOperation;
+use Oro\Bundle\BatchBundle\ORM\Query\BufferedIdentityQueryResultIterator;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
+use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
+use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;
+use Oro\Bundle\WebCatalogBundle\Entity\WebCatalog;
+use Oro\Bundle\WebCatalogBundle\Provider\WebCatalogProvider;
+use Oro\Bundle\WebsiteBundle\Entity\Website;
 use Oro\Bundle\WebsiteBundle\Provider\AbstractWebsiteLocalizationProvider;
+use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 use Oro\Bundle\WebsiteSearchBundle\Engine\AbstractIndexer;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexerInputValidator;
+use Oro\Bundle\WebsiteSearchBundle\Event\AfterReindexEvent;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderInterface;
 use Oro\Bundle\WebsiteSearchBundle\Resolver\EntityDependenciesResolverInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class GallyIndexer extends AbstractIndexer
 {
-    private const CONTEXT_LOCALE_ID = 'localeId';
-    private const CONTEXT_LOCALE_CODE = 'localeCode';
+    public const CONTEXT_LOCALIZATION = 'localization';
 
     /** @var LocalizedCatalog[] */
     private array $localizedCatalogByWebsite;
@@ -40,6 +47,7 @@ class GallyIndexer extends AbstractIndexer
         EventDispatcherInterface $eventDispatcher,
         PlaceholderInterface $regexPlaceholder,
         private AbstractWebsiteLocalizationProvider $websiteLocalizationProvider,
+        private WebCatalogProvider $webCatalogProvider,
         private CatalogProvider $catalogProvider,
         private SourceFieldProvider $sourceFieldProvider,
         private IndexOperation $indexOperation,
@@ -58,6 +66,11 @@ class GallyIndexer extends AbstractIndexer
 
     protected function reindexEntityClass($entityClass, array $context)
     {
+        if ($entityClass === SavedSearch::class) {
+            // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
+            return 0;
+        }
+
         $websiteId = $context[AbstractIndexer::CONTEXT_CURRENT_WEBSITE_ID_KEY];
         $metadata = $this->sourceFieldProvider->getMetadataFromEntityClass($entityClass);
 
@@ -73,6 +86,7 @@ class GallyIndexer extends AbstractIndexer
         }
 
         return parent::reindexEntityClass($entityClass, $context);
+
 
 //        // Create entity iterator
 //        $entityRepository = $this->doctrineHelper->getEntityRepositoryForClass($entityClass);
@@ -150,8 +164,7 @@ class GallyIndexer extends AbstractIndexer
         $localizations = $this->websiteLocalizationProvider->getLocalizationsByWebsiteId($websiteId);
 
         foreach ($localizations as $localization) {
-            $context[self::CONTEXT_LOCALE_ID] = $localization->getId();
-            $context[self::CONTEXT_LOCALE_CODE] = $localization->getFormattingCode();
+            $context[self::CONTEXT_LOCALIZATION] = $localization;
             $result = parent::indexEntities($entityClass, $entityIds, $context, $aliasToSave);
         }
 
@@ -222,7 +235,9 @@ class GallyIndexer extends AbstractIndexer
 //        $indexName = $this->indexAgent->getIndexNameByAlias($realAlias);
         $indexName = 'toto';
         $bulk = array_map(fn ($data) => json_encode($data), $entitiesData);
-        $index = $this->indicesByLocale[$context[self::CONTEXT_LOCALE_CODE]];
+        /** @var Localization $localization */
+        $localization = $context[self::CONTEXT_LOCALIZATION];
+        $index = $this->indicesByLocale[$localization->getFormattingCode()];
         $this->indexOperation->executeBulk($index, $bulk);
 
 
@@ -316,6 +331,17 @@ class GallyIndexer extends AbstractIndexer
         foreach ($this->indicesByLocale as $index) {
             $this->indexOperation->refreshIndex($index);
             $this->indexOperation->installIndex($index);
+        }
+    }
+
+    /**
+     * @return iterable<ContentNode>
+     */
+    private function getTree(ContentNode $node): iterable
+    {
+        yield $node;
+        foreach ($node->getChildNodes() as $childNode) {
+            $this->getTree($childNode);
         }
     }
 }

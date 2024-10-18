@@ -4,10 +4,8 @@ namespace Gally\OroPlugin\Engine;
 
 use Doctrine\ORM\QueryBuilder;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
-use Oro\Bundle\SearchBundle\Engine\Indexer;
 use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
-use Oro\Bundle\WebsiteSearchBundle\Engine\AbstractIndexer;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider as BaseIndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Event;
 use Oro\Bundle\WebsiteSearchBundle\Helper\PlaceholderHelper;
@@ -100,13 +98,12 @@ class IndexDataProvider extends BaseIndexDataProvider
                 $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_small'];
             }
 
-            // Todo provisoir
-            $preparedIndexData[$entityId]['name'] = 'Blop #' . $entityId;
+            // Todo provisoir : only for product entity ??
+            if (!array_key_exists('name', $preparedIndexData[$entityId])) {
+                $preparedIndexData[$entityId]['name'] = 'Blop #' . $entityId;
+            }
             $preparedIndexData[$entityId]['price'] = ['price' => 0, 'group_id' => 0];
             $preparedIndexData[$entityId]['stock'] = ['status' => true, 'qty' => 0];
-            unset($preparedIndexData[$entityId]['featured']); // Todo manage boolean
-            unset($preparedIndexData[$entityId]['newArrival']); // Todo manage boolean
-            unset($preparedIndexData[$entityId]['brand']); // Todo manage complexe object
         }
 
         return $preparedIndexData;

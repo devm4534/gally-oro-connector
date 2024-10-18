@@ -1,5 +1,5 @@
-Oro\Bundle\WebCatalogBundle\Entity\WebCatalog:
-    alias: oro_web_catalog_WEBSITE_ID
+Oro\Bundle\WebCatalogBundle\Entity\ContentNode:
+    alias: oro_content_node_WEBSITE_ID
     fields:
         - name: id
           type: text
@@ -20,6 +20,11 @@ Oro\Bundle\ProductBundle\Entity\Brand:
           type: integer
 
 Oro\Bundle\ProductBundle\Entity\Product:
+    fields:
+        - name: id
+          type: integer
+
+Oro\Bundle\WebsiteSearchSuggestionBundle\Entity\Suggestion:
     fields:
         - name: id
           type: integer

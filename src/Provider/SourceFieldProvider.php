@@ -8,16 +8,16 @@ use Gally\Sdk\Entity\Label;
 use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
-use Oro\Bundle\CatalogBundle\Entity\Category;
+use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
 use Oro\Bundle\EntityConfigBundle\Exception\RuntimeException;
 use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\SearchBundle\Query\Query;
+use Oro\Bundle\WebCatalogBundle\Entity\WebCatalog;
 use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderRegistry;
-use Oro\Bundle\WebsiteSearchBundle\Placeholder\WebsiteIdPlaceholder;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -26,9 +26,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class SourceFieldProvider
 {
     // Get this from conf todo
-    private array $entities = [
-        Category::class => 'category',
-        Product::class  => 'product',
+    private array $entityCodeMapping = [
+        'contentnode' => 'category',
     ];
 
     private array $typeMapping = [
@@ -43,9 +42,10 @@ class SourceFieldProvider
 
     public function __construct(
         private SearchMappingProvider $mappingProvider,
-        private PlaceholderRegistry $placeholderRegistry,
+        private EntityAliasResolver $entityAliasResolver,
         private ConfigProvider $configProvider,
         private CatalogProvider $catalogProvider,
+        private PlaceholderRegistry $placeholderRegistry,
         private TranslatorInterface $translator,
         private LocaleSettings $localeSettings,
     ) {
@@ -64,7 +64,7 @@ class SourceFieldProvider
 
             if ($entityClass === SavedSearch::class) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
-                return;
+                continue;
             }
 
             $metadata = $this->getMetadataFromEntityClass($entityClass);
@@ -111,17 +111,8 @@ class SourceFieldProvider
 
     public function getMetadataFromEntityClass(string $entityClass): Metadata
     {
-        if (array_key_exists($entityClass, $this->entities)) {
-            $entityCode = $this->entities[$entityClass];
-        } else {
-            $entityCode = $this->mappingProvider->getEntityAlias($entityClass) ?: $entityClass;
-            $entityCode = trim(
-                str_replace(WebsiteIdPlaceholder::NAME, '', $entityCode),
-                '_'
-            );
-        }
-
-        return new Metadata($entityCode);
+        $entityCode = $this->entityAliasResolver->getAlias($entityClass);
+        return new Metadata($this->entityCodeMapping[$entityCode] ?? $entityCode);
     }
 
     private function cleanFieldName(string $fieldName): string

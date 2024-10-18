@@ -17,9 +17,10 @@ services:
     Gally\OroPlugin\Provider\SourceFieldProvider:
         arguments:
             - '@oro_website_search.provider.search_mapping'
-            - '@oro_website_search.placeholder.registry'
+            - '@oro_entity.entity_alias_resolver'
             - '@oro_entity_config.provider.entity'
             - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@oro_website_search.placeholder.registry'
             - '@translator'
             - '@oro_locale.settings'
 
@@ -37,6 +38,15 @@ services:
             - '@Gally\Sdk\Service\StructureSynchonizer'
         tags:
             - { name: console.command }
+
+    Gally\OroPlugin\EventListener\WebsiteSearchWebCatalogIndexerListener:
+        arguments:
+            - '@oro_website_search.manager.website_context_manager'
+            - '@doctrine'
+            - '@oro_web_catalog.web_catalog_provider'
+            - '@oro_locale.helper.localization'
+        tags:
+            - { name: kernel.event_listener, event: oro_website_search.event.index_entity.contentnode, method: onWebsiteSearchIndex, priority: -255 }
 
     oro_website_search.engine.gally.index_data:
         class: 'Gally\OroPlugin\Engine\IndexDataProvider'
@@ -59,6 +69,7 @@ services:
             - '@event_dispatcher'
             - '@oro_website_search.regex_placeholder_decorator'
             - '@oro_website.provider.website_localization'
+            - '@oro_web_catalog.web_catalog_provider'
             - '@Gally\OroPlugin\Provider\CatalogProvider'
             - '@Gally\OroPlugin\Provider\SourceFieldProvider'
             - '@Gally\Sdk\Service\IndexOperation'
