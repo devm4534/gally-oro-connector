@@ -23,6 +23,8 @@ Oro\Bundle\ProductBundle\Entity\Product:
     fields:
         - name: id
           type: integer
+        - name: inv_qty
+          type: decimal
 
 Oro\Bundle\WebsiteSearchSuggestionBundle\Entity\Suggestion:
     fields:

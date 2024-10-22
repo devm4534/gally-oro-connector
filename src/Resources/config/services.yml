@@ -48,6 +48,13 @@ services:
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.contentnode, method: onWebsiteSearchIndex, priority: -255 }
 
+    Gally\OroPlugin\EventListener\WebsiteSearchInventoryLevelIndexerListener:
+        arguments:
+            - '@doctrine'
+            - '@oro_warehouse.provider.enabled_warehouses_provider'
+        tags:
+            - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
+
     oro_website_search.engine.gally.index_data:
         class: 'Gally\OroPlugin\Engine\IndexDataProvider'
         arguments:

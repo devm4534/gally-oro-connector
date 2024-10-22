@@ -7,9 +7,11 @@ use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
+use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
 use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;
+use Oro\Bundle\WebCatalogBundle\Entity\ContentVariant;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider as BaseIndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Event;
 use Oro\Bundle\WebsiteSearchBundle\Helper\PlaceholderHelper;
@@ -66,7 +68,7 @@ class IndexDataProvider extends BaseIndexDataProvider
             sprintf('%s.%s', Event\IndexEntityEvent::NAME, $entityAlias)
         );
 
-        return $this->prepareIndexData($indexEntityEvent->getEntitiesData(), $entityConfig, $context);
+        return $this->prepareIndexData($entityClass, $indexEntityEvent->getEntitiesData(), $entityConfig, $context);
     }
 
     /**
@@ -76,7 +78,7 @@ class IndexDataProvider extends BaseIndexDataProvider
      * @param array $context
      * @return array Structured and cleared data ready to be saved
      */
-    private function prepareIndexData(array $indexData, array $entityConfig, array $context): array
+    private function prepareIndexData(string $entityClass, array $indexData, array $entityConfig, array $context): array
     {
         $preparedIndexData = [];
         $nodeIds = [];
@@ -108,12 +110,12 @@ class IndexDataProvider extends BaseIndexDataProvider
                     }
 
                     if (str_starts_with($fieldName, 'assigned_to.')) {
-                        $nodeId = 'node_' . $placeholders[AssignIdPlaceholder::NAME];
+                        $nodeId = $placeholders[AssignIdPlaceholder::NAME];
                         $categories[$nodeId]['id'] = $nodeId;
                         $nodeIds[] = $placeholders[AssignIdPlaceholder::NAME];
                         continue;
                     } elseif (str_starts_with($fieldName, 'assigned_to_sort_order.')) {
-                        $nodeId = 'node_' . $placeholders[AssignIdPlaceholder::NAME];
+                        $nodeId = $placeholders[AssignIdPlaceholder::NAME];
                         $categories[$nodeId]['position'] = (int) $value;
                         continue;
                     }
@@ -129,19 +131,26 @@ class IndexDataProvider extends BaseIndexDataProvider
 
             // Spe gally
             $preparedIndexData[$entityId]['id'] = $entityId;
-            if (array_key_exists('image_product_small', $preparedIndexData[$entityId])) {
-                $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_small'];
+            if (array_key_exists('image_product_medium', $preparedIndexData[$entityId])) {
+                $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_medium'];
             }
 
             // Todo provisoir : only for product entity ??
-            if (!array_key_exists('name', $preparedIndexData[$entityId])) {
-                $preparedIndexData[$entityId]['name'] = 'Blop #' . $entityId;
-            }
-            $preparedIndexData[$entityId]['price'] = ['price' => 0, 'group_id' => 0];
-            $preparedIndexData[$entityId]['stock'] = ['status' => true, 'qty' => 0];
 
             if (!empty($categories)) {
                 $preparedIndexData[$entityId]['category'] = array_values($categories);
+            }
+
+            if ($entityClass == Product::class) {
+                // Todo manage prices
+                $preparedIndexData[$entityId]['price'][] = ['price' => 42, 'group_id' => 0];
+                $stockStatus = $preparedIndexData[$entityId]['inv_status'] ?? Product::INVENTORY_STATUS_OUT_OF_STOCK;
+                $preparedIndexData[$entityId]['stock'] = [
+                    'status' => $stockStatus == Product::INVENTORY_STATUS_IN_STOCK,
+                    'qty' => $preparedIndexData[$entityId]['inv_qty'] ?? 0,
+                ];
+                unset($preparedIndexData[$entityId]['inv_status']);
+                unset($preparedIndexData[$entityId]['inv_qty']);
             }
         }
 
@@ -164,23 +173,28 @@ class IndexDataProvider extends BaseIndexDataProvider
 
     private function addCategoryNames(array &$preparedIndexData, array $nodeIds, Localization $localization): void
     {
-        $entityRepository = $this->doctrineHelper->getEntityRepositoryForClass(ContentNode::class);
+        $contentVariantNodeRepository = $this->doctrineHelper->getEntityRepositoryForClass(ContentVariant::class);
         $nodeNames = [];
 
-        /** @var ContentNode $node */
-        foreach ($entityRepository->findBy(['id' => $nodeIds]) as $node) {
-            $name = $this->localizationHelper->getLocalizedValue($node->getTitles(), $localization)->getString();
-            $nodeNames['node_' . $node->getId()] = $name;
+        /** @var ContentVariant $node */
+        foreach ($contentVariantNodeRepository->findBy(['id' => $nodeIds]) as $node) {
+            $name = $this->localizationHelper->getLocalizedValue($node->getNode()->getTitles(), $localization)->getString();
+            $nodeNames[$node->getId()] = [
+                'id' => 'node_' . $node->getNode()->getId(),
+                'name' => $name
+            ];
         }
 
         foreach ($preparedIndexData as $entityId => $entityData) {
+            $newCategoryData = [];
             foreach ($entityData['category'] ?? [] as $index => $categoryData) {
                 if (array_key_exists($categoryData['id'], $nodeNames)) {
-                    $preparedIndexData[$entityId]['category'][$index]['name'] = $nodeNames[$categoryData['id']];
+                    $newCategoryData[] = $nodeNames[$categoryData['id']];
                 }
             }
+            unset($preparedIndexData[$entityId]['category']);
+            $preparedIndexData[$entityId]['category'] = $newCategoryData;
         }
-        // Todo manage undefined : certain ne semble pas être des contentNode : le 40 ?
     }
 
     /**
