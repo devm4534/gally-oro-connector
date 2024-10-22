@@ -3,18 +3,30 @@
 namespace Gally\OroPlugin\Engine;
 
 use Doctrine\ORM\QueryBuilder;
+use Oro\Bundle\ConfigBundle\Config\ConfigManager;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
+use Oro\Bundle\FeatureToggleBundle\Checker\FeatureChecker;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
+use Oro\Bundle\PricingBundle\Entity\CombinedPriceList;
+use Oro\Bundle\PricingBundle\Entity\PriceList;
+use Oro\Bundle\PricingBundle\Entity\Repository\CombinedPriceListRepository;
+use Oro\Bundle\PricingBundle\Placeholder\CPLIdPlaceholder;
+use Oro\Bundle\PricingBundle\Placeholder\CurrencyPlaceholder;
+use Oro\Bundle\PricingBundle\Placeholder\PriceListIdPlaceholder;
+use Oro\Bundle\PricingBundle\Placeholder\UnitPlaceholder;
+use Oro\Bundle\PricingBundle\Provider\WebsiteCurrencyProvider;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
-use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;
 use Oro\Bundle\WebCatalogBundle\Entity\ContentVariant;
+use Oro\Bundle\WebsiteBundle\Entity\Website;
+use Oro\Bundle\WebsiteSearchBundle\Engine\Context\ContextTrait;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider as BaseIndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Event;
 use Oro\Bundle\WebsiteSearchBundle\Helper\PlaceholderHelper;
+use Oro\Bundle\WebsiteSearchBundle\Manager\WebsiteContextManager;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\AssignIdPlaceholder;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\LocalizationIdPlaceholder;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderInterface;
@@ -28,6 +40,8 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  */
 class IndexDataProvider extends BaseIndexDataProvider
 {
+    use ContextTrait;
+
     // Todo get from conf
     protected array $attributeCodeMapping = [
         'names' => 'name',
@@ -42,6 +56,10 @@ class IndexDataProvider extends BaseIndexDataProvider
         private PlaceholderHelper $placeholderHelper,
         private DoctrineHelper $doctrineHelper,
         private LocalizationHelper $localizationHelper,
+        private WebsiteCurrencyProvider $currencyProvider,
+        private WebsiteContextManager $websiteContextManager,
+        private ConfigManager $configManager,
+        private FeatureChecker $featureChecker,
     ) {
         parent::__construct($eventDispatcher, $entityAliasResolver, $placeholder, $htmlTagHelper, $placeholderHelper);
     }
@@ -73,6 +91,7 @@ class IndexDataProvider extends BaseIndexDataProvider
 
     /**
      * Adds field types according to entity config, applies placeholders
+     * @param string $entityClass
      * @param array $indexData
      * @param array $entityConfig
      * @param array $context
@@ -85,10 +104,14 @@ class IndexDataProvider extends BaseIndexDataProvider
 
         /** @var Localization $localization */
         $localization = $context[GallyIndexer::CONTEXT_LOCALIZATION];
+        $website = $this->websiteContextManager->getWebsite($context);
+        $defaultCurrency = $this->currencyProvider->getWebsiteDefaultCurrency($website->getId());
+        $defaultPriceList = $this->getDefaultPriceListForWebsite($website);
 
         foreach ($indexData as $entityId => $fieldsValues) {
 
             $categories = [];
+            $prices = [];
 
             foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
                 $type = $this->getFieldConfig($entityConfig, $fieldName, 'type');
@@ -118,6 +141,19 @@ class IndexDataProvider extends BaseIndexDataProvider
                         $nodeId = $placeholders[AssignIdPlaceholder::NAME];
                         $categories[$nodeId]['position'] = (int) $value;
                         continue;
+                    } elseif (str_starts_with($fieldName, 'minimal_price.')) {
+                        if (
+                            str_contains($fieldName, UnitPlaceholder::NAME)
+                            || $defaultCurrency !== $placeholders[CurrencyPlaceholder::NAME]
+                        ) {
+                            continue;
+                        }
+                        $groupId = $placeholders[CPLIdPlaceholder::NAME] ?: $placeholders[PriceListIdPlaceholder::NAME];
+                        $groupId = $defaultPriceList->getId() === $groupId
+                            ? 0
+                            : (($placeholders[CPLIdPlaceholder::NAME] ? 'cpl_' : 'pl_') . $groupId);
+                        $prices[] = ['price' => (float) $value, 'group_id' => $groupId];
+                        continue;
                     }
 
                     if (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
@@ -142,8 +178,7 @@ class IndexDataProvider extends BaseIndexDataProvider
             }
 
             if ($entityClass == Product::class) {
-                // Todo manage prices
-                $preparedIndexData[$entityId]['price'][] = ['price' => 42, 'group_id' => 0];
+                $preparedIndexData[$entityId]['price'] = $prices;
                 $stockStatus = $preparedIndexData[$entityId]['inv_status'] ?? Product::INVENTORY_STATUS_OUT_OF_STOCK;
                 $preparedIndexData[$entityId]['stock'] = [
                     'status' => $stockStatus == Product::INVENTORY_STATUS_IN_STOCK,
@@ -379,5 +414,23 @@ class IndexDataProvider extends BaseIndexDataProvider
         }
 
         return $field;
+    }
+
+    private function getDefaultPriceListForWebsite(Website $website): PriceList|CombinedPriceList|null
+    {
+        $isCombinedPriceListEnable = $this->featureChecker->isFeatureEnabled('oro_price_lists_combined');
+
+        if ($isCombinedPriceListEnable) {
+            /** @var CombinedPriceListRepository $combinedPriceListRepository */
+            $combinedPriceListRepository = $this->doctrineHelper->getEntityRepositoryForClass(CombinedPriceList::class);
+            return $combinedPriceListRepository->getPriceListByWebsite($website, true);
+        } else {
+            $priceListId = $this->configManager->get('oro_pricing.default_price_list', false, false, $website->getId());
+            if ($priceListId) {
+                return $this->doctrineHelper->getEntityRepositoryForClass(PriceList::class)->find($priceListId);
+            }
+        }
+
+        return null;
     }
 }

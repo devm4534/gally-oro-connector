@@ -65,6 +65,10 @@ services:
             - '@oro_website_search.helper.placeholder_helper'
             - '@oro_entity.doctrine_helper'
             - '@oro_locale.helper.localization'
+            - '@oro_pricing.provider.website_currency_provider'
+            - '@oro_website_search.manager.website_context_manager'
+            - '@oro_config.manager'
+            - '@oro_featuretoggle.checker.feature_checker'
 
     oro_website_search.gally.indexer:
         class: 'Gally\OroPlugin\Engine\GallyIndexer'
