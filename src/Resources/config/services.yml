@@ -26,9 +26,12 @@ services:
 
     Gally\OroPlugin\Provider\SourceFieldOptionProvider:
         arguments:
+            - '@oro_website_search.provider.search_mapping'
+            - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@oro_locale.settings'
             - '@doctrine.orm.entity_manager'
-            - '@oro_website.provider.website_localization'
-            - '@oro_pricing.provider.website_currency_provider'
+            - '@oro_entity_extend.enum_type_helper'
+            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
 
     Gally\OroPlugin\Command\StructureSync:
         arguments:

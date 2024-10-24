@@ -54,12 +54,12 @@ class StructureSync extends Command
         $time = number_format(microtime(true) - $time, 2);
         $output->writeln("\033[1A$message <info>✔</info> ($time)s");
 
-//        $message = "<comment>Sync Catalog</comment>";
-//        $time = microtime(true);
-//        $output->writeln("$message ...");
-//        $this->synchonizer->syncAllSourceFieldOptions($this->sourceFieldOptionProvider->provide());
-//        $time = number_format(microtime(true) - $time, 2);
-//        $output->writeln("\033[1A$message <info>✔</info> ($time)s");
+        $message = "<comment>Sync SourceField Options</comment>";
+        $time = microtime(true);
+        $output->writeln("$message ...");
+        $this->synchonizer->syncAllSourceFieldOptions($this->sourceFieldOptionProvider->provide());
+        $time = number_format(microtime(true) - $time, 2);
+        $output->writeln("\033[1A$message <info>✔</info> ($time)s");
 
         $output->writeln('');
 

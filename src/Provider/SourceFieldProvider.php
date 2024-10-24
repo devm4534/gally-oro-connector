@@ -115,7 +115,7 @@ class SourceFieldProvider
         return new Metadata($this->entityCodeMapping[$entityCode] ?? $entityCode);
     }
 
-    private function cleanFieldName(string $fieldName): string
+    public function cleanFieldName(string $fieldName): string
     {
         foreach ($this->placeholderRegistry->getPlaceholders() as $placeholder) {
             $fieldName = $placeholder->replace($fieldName, [$placeholder->getPlaceholder() => null]);
