@@ -25,6 +25,10 @@ Oro\Bundle\ProductBundle\Entity\Product:
           type: integer
         - name: inv_qty
           type: decimal
+        - name: visibility_customer.customer_id
+          type: text
+        - name: visibility_customer.value
+          type: integer
 
 Oro\Bundle\WebsiteSearchSuggestionBundle\Entity\Suggestion:
     fields:

@@ -2,13 +2,21 @@
 
 namespace Gally\OroPlugin\Engine;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
+use Gally\OroPlugin\Provider\CatalogProvider;
+use Gally\OroPlugin\Provider\SourceFieldProvider;
 use Oro\Bundle\ConfigBundle\Config\ConfigManager;
+use Oro\Bundle\CustomerBundle\Placeholder\CustomerIdPlaceholder;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
+use Oro\Bundle\EntityExtendBundle\Entity\EnumValueTranslation;
+use Oro\Bundle\EntityExtendBundle\Form\Util\EnumTypeHelper;
+use Oro\Bundle\EntityExtendBundle\Tools\ExtendHelper;
 use Oro\Bundle\FeatureToggleBundle\Checker\FeatureChecker;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
+use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\PricingBundle\Entity\CombinedPriceList;
 use Oro\Bundle\PricingBundle\Entity\PriceList;
 use Oro\Bundle\PricingBundle\Entity\Repository\CombinedPriceListRepository;
@@ -18,6 +26,7 @@ use Oro\Bundle\PricingBundle\Placeholder\PriceListIdPlaceholder;
 use Oro\Bundle\PricingBundle\Placeholder\UnitPlaceholder;
 use Oro\Bundle\PricingBundle\Provider\WebsiteCurrencyProvider;
 use Oro\Bundle\ProductBundle\Entity\Product;
+use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
 use Oro\Bundle\WebCatalogBundle\Entity\ContentVariant;
@@ -60,6 +69,12 @@ class IndexDataProvider extends BaseIndexDataProvider
         private WebsiteContextManager $websiteContextManager,
         private ConfigManager $configManager,
         private FeatureChecker $featureChecker,
+        private SearchMappingProvider $mappingProvider,
+        private CatalogProvider $catalogProvider,
+        private LocaleSettings $localeSettings,
+        private EntityManagerInterface $entityManager,
+        private EnumTypeHelper $enumTypeHelper,
+        private SourceFieldProvider $sourceFieldProvider,
     ) {
         parent::__construct($eventDispatcher, $entityAliasResolver, $placeholder, $htmlTagHelper, $placeholderHelper);
     }
@@ -107,14 +122,17 @@ class IndexDataProvider extends BaseIndexDataProvider
         $website = $this->websiteContextManager->getWebsite($context);
         $defaultCurrency = $this->currencyProvider->getWebsiteDefaultCurrency($website->getId());
         $defaultPriceList = $this->getDefaultPriceListForWebsite($website);
+        $optionValues = $this->prepareOptionValues($entityClass, $indexData, $localization);
+
+        // Todo brand / variant
 
         foreach ($indexData as $entityId => $fieldsValues) {
 
             $categories = [];
             $prices = [];
+            $visibilityCustomer = [];
 
             foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
-                $type = $this->getFieldConfig($entityConfig, $fieldName, 'type');
 
                 foreach ($this->toArray($values) as $value) {
                     $singleValueFieldName = $this->cleanFieldName($fieldName);
@@ -136,11 +154,9 @@ class IndexDataProvider extends BaseIndexDataProvider
                         $nodeId = $placeholders[AssignIdPlaceholder::NAME];
                         $categories[$nodeId]['id'] = $nodeId;
                         $nodeIds[] = $placeholders[AssignIdPlaceholder::NAME];
-                        continue;
                     } elseif (str_starts_with($fieldName, 'assigned_to_sort_order.')) {
                         $nodeId = $placeholders[AssignIdPlaceholder::NAME];
                         $categories[$nodeId]['position'] = (int) $value;
-                        continue;
                     } elseif (str_starts_with($fieldName, 'minimal_price.')) {
                         if (
                             str_contains($fieldName, UnitPlaceholder::NAME)
@@ -153,25 +169,35 @@ class IndexDataProvider extends BaseIndexDataProvider
                             ? 0
                             : (($placeholders[CPLIdPlaceholder::NAME] ? 'cpl_' : 'pl_') . $groupId);
                         $prices[] = ['price' => (float) $value, 'group_id' => $groupId];
-                        continue;
-                    }
-
-                    if (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
+                    } elseif (str_starts_with($fieldName, 'visibility_customer.')) {
+                        $visibilityCustomer[] = [
+                            'customer_id' => $placeholders[CustomerIdPlaceholder::NAME],
+                            'value' => $value
+                        ];
+                    } elseif (preg_match('/^(\w+)_enum\.(.+)$/', $fieldName, $matches)) {
+                        [$fullMatch, $fieldName, $value] = $matches;
+                        $preparedIndexData[$entityId][$fieldName][] = [
+                            'label' => $optionValues[$fieldName][$value] ?? $value,
+                            'value' => $value,
+                        ];
+                        $blop = 'toto';
+                        // manage value / label
+                    } elseif (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
+                        if ($value === null || $value === '' || $value === []) {
+                            continue;
+                        }
                         $singleValueFieldName = $this->placeholder->replace($singleValueFieldName, $placeholders);
-                        $this->setIndexValue($preparedIndexData, $entityId, $singleValueFieldName, $value, $type);
+                        $preparedIndexData[$entityId][$singleValueFieldName] = $value;
                     }
                 }
             }
 
             $preparedIndexData[$entityId] = $preparedIndexData[$entityId] ?? [];
 
-            // Spe gally
             $preparedIndexData[$entityId]['id'] = $entityId;
             if (array_key_exists('image_product_medium', $preparedIndexData[$entityId])) {
                 $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_medium'];
             }
-
-            // Todo provisoir : only for product entity ??
 
             if (!empty($categories)) {
                 $preparedIndexData[$entityId]['category'] = array_values($categories);
@@ -186,6 +212,10 @@ class IndexDataProvider extends BaseIndexDataProvider
                 ];
                 unset($preparedIndexData[$entityId]['inv_status']);
                 unset($preparedIndexData[$entityId]['inv_qty']);
+            }
+
+            if (!empty($visibilityCustomer)) {
+                $preparedIndexData[$entityId]['visibility_customer'] = $visibilityCustomer;
             }
         }
 
@@ -232,6 +262,55 @@ class IndexDataProvider extends BaseIndexDataProvider
         }
     }
 
+    private function prepareOptionValues(string $entityClass, array $indexData, Localization $localization): array
+    {
+        $entityConfig = $this->mappingProvider->getEntityConfig($entityClass);
+        $selectAttributes = [];
+
+        foreach ($entityConfig['fields'] as $fieldData) {
+            $fieldName = $fieldData['name'];
+
+            if (!str_ends_with($fieldName, '_enum.ENUM_ID')) {
+                // Get options only for select attributes.
+                continue;
+            }
+
+            $fieldName = preg_replace('/_enum\.ENUM_ID$/', '', $fieldName);
+            $selectAttributes[] = $fieldName;
+        }
+
+        $usedOptionsByField = [];
+        $selectAttributesMap = array_fill_keys($selectAttributes, true);
+        foreach ($indexData as $entityData) {
+            foreach ($entityData as $fieldName => $value) {
+                if (preg_match('/^(\w+)_enum\.(.+)$/', $fieldName, $matches)) {
+                    [$fullMatch, $attribute, $optionCode] = $matches;
+                    if (isset($selectAttributesMap[$attribute])) {
+                        $usedOptionsByField[$attribute][$optionCode] = $optionCode;
+                    }
+                }
+            }
+        }
+
+        $translatedOptionsByField = [];
+        foreach ($usedOptionsByField as $fieldName => $optionCodes) {
+            $enumCode = $this->enumTypeHelper->getEnumCode($entityClass, $fieldName);
+            $enumValueClassName = ExtendHelper::buildEnumValueClassName($enumCode);
+            $translationRepo = $this->entityManager->getRepository(EnumValueTranslation::class);
+            $translations = $translationRepo->findBy([
+                'objectClass' => $enumValueClassName,
+                'field' => 'name',
+                'foreignKey' => $optionCodes,
+                'locale' => $localization->getFormattingCode(),
+            ]);
+            foreach ($translations as $translation) {
+                $translatedOptionsByField[$fieldName][$translation->getForeignKey()] = $translation->getContent();
+            }
+        }
+
+        return $translatedOptionsByField;
+    }
+
     /**
      * @param mixed $value
      * @return array
@@ -243,177 +322,6 @@ class IndexDataProvider extends BaseIndexDataProvider
         }
 
         return [$value];
-    }
-
-    /**
-     * @param array $preparedIndexData
-     * @param int $entityId
-     * @param string $fieldName
-     * @param array|string $value
-     * @param string $type
-     */
-    private function setIndexValue(array &$preparedIndexData, $entityId, $fieldName, $value, $type = Query::TYPE_TEXT)
-    {
-        $value = $this->clearValue($type, $fieldName, $value);
-
-        if ($value === null || $value === '' || $value === []) {
-            return;
-        }
-
-        $existingValue = $this->getIndexValue($preparedIndexData, $entityId, $fieldName, $type);
-        if ($existingValue) {
-            $value = $this->updateFieldValue($existingValue, $value, $type);
-        }
-
-        $preparedIndexData[$entityId][$fieldName] = $value;
-    }
-
-    /**
-     * @param string|array  $existingValue
-     * @param string        $value
-     *
-     * @return string|array
-     */
-    private function updateFieldValue($existingValue, $value, $type)
-    {
-        if ($type === Query::TYPE_TEXT && is_string($existingValue) && is_string($value)) {
-            return $existingValue . ' ' . $value;
-        }
-
-        // array_values is required here to make sure that array can be properly converted to json
-        return array_values(array_unique(array_merge((array)$existingValue, (array)$value)));
-    }
-
-    /**
-     * @param array $preparedIndexData
-     * @param int $entityId
-     * @param string $fieldName
-     * @param string $type
-     * @return string|array
-     */
-    private function getIndexValue(array &$preparedIndexData, $entityId, $fieldName, $type = Query::TYPE_TEXT)
-    {
-        return $preparedIndexData[$entityId][$type][$fieldName] ?? '';
-    }
-
-    /**
-     * @param array $entityConfig
-     * @param string $fieldName
-     * @param string $configName
-     * @param string $default
-     * @return string
-     * @throws InvalidConfigurationException
-     */
-    private function getFieldConfig(array $entityConfig, $fieldName, $configName, $default = null)
-    {
-        $cacheKey = md5(json_encode($entityConfig)) . $fieldName . $configName;
-
-        if (isset($this->cache[$cacheKey])) {
-            return $this->cache[$cacheKey];
-        }
-
-        $fields = array_filter($entityConfig['fields'], function ($fieldConfig) use ($fieldName, $configName) {
-            if (!array_key_exists('name', $fieldConfig)) {
-                return false;
-            }
-
-            if (!array_key_exists($configName, $fieldConfig)) {
-                return false;
-            }
-
-            return $fieldConfig['name'] === $fieldName ||
-                $this->placeholderHelper->isNameMatch($fieldConfig['name'], $fieldName);
-        });
-
-        if (!$fields) {
-            if ($default) {
-                return $default;
-            }
-
-            if ($fieldName === self::ALL_TEXT_L10N_FIELD) {
-                return $configName === 'type' ? Query::TYPE_TEXT : $fieldName;
-            }
-
-            throw new InvalidConfigurationException(
-                sprintf('Missing option "%s" for "%s" field', $configName, $fieldName)
-            );
-        }
-
-        $field = $this->findBestMatchedFieldConfig($fields);
-
-        $result = $field[$configName];
-
-        $this->cache[$cacheKey] = $result;
-
-        return $result;
-    }
-
-    /**
-     * Keep HTML in text fields except all_text* fields
-     *
-     * @param string $type
-     * @param string $fieldName
-     * @param mixed $value
-     * @return mixed|string
-     */
-    protected function clearValue($type, $fieldName, $value)
-    {
-        if (is_array($value)) {
-            foreach ($value as $key => $element) {
-                $value[$key] = $this->clearValue($type, $fieldName, $element);
-            }
-
-            return $value;
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param string $entityClass
-     * @param QueryBuilder $queryBuilder
-     * @param array $context
-     * $context = [
-     *     'currentWebsiteId' int Current website id. Should not be passed manually. It is computed from 'websiteIds'
-     * ]
-     *
-     * @return QueryBuilder
-     */
-    public function getRestrictedEntitiesQueryBuilder($entityClass, $queryBuilder, array $context)
-    {
-        $entityAlias = $this->entityAliasResolver->getAlias($entityClass);
-
-        $restrictEntitiesEvent = new Event\RestrictIndexEntityEvent($queryBuilder, $context);
-        $this->eventDispatcher->dispatch($restrictEntitiesEvent, Event\RestrictIndexEntityEvent::NAME);
-        $this->eventDispatcher->dispatch(
-            $restrictEntitiesEvent,
-            sprintf('%s.%s', Event\RestrictIndexEntityEvent::NAME, $entityAlias)
-        );
-
-        return $restrictEntitiesEvent->getQueryBuilder();
-    }
-
-    /**
-     * Finds best matched field config based on length of field name without placeholders
-     */
-    private function findBestMatchedFieldConfig(array $fields): array
-    {
-        $field = end($fields);
-
-        if (count($fields) > 1) {
-            $availablePlaceholders = $this->placeholderHelper->getPlaceholderKeys();
-
-            $lastCheckedFieldLength = 0;
-            foreach ($fields as $keyFieldName => $config) {
-                $cleanFieldName = str_replace($availablePlaceholders, '', $keyFieldName);
-                if (strlen($cleanFieldName) > $lastCheckedFieldLength) {
-                    $lastCheckedFieldLength = strlen($cleanFieldName);
-                    $field = $config;
-                }
-            }
-        }
-
-        return $field;
     }
 
     private function getDefaultPriceListForWebsite(Website $website): PriceList|CombinedPriceList|null

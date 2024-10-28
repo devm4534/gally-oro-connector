@@ -222,94 +222,17 @@ class GallyIndexer extends AbstractIndexer
 
     protected function saveIndexData($entityClass, array $entitiesData, $entityAliasTemp, array $context)
     {
-        // TODO: Implement saveIndexData() method.
-
         $realAlias = $this->getEntityAlias($entityClass, $context);
 
         if (null === $realAlias || empty($entitiesData)) {
             return [];
         }
 
-        $body = [];
-
-//        $indexName = $this->indexAgent->getIndexNameByAlias($realAlias);
-        $indexName = 'toto';
         $bulk = array_map(fn ($data) => json_encode($data), $entitiesData);
         /** @var Localization $localization */
         $localization = $context[self::CONTEXT_LOCALIZATION];
         $index = $this->indicesByLocale[$localization->getFormattingCode()];
         $this->indexOperation->executeBulk($index, $bulk);
-
-
-//        foreach ($entitiesData as $entityId => $entityData) {
-//            $indexIdentifier = ['_id' => $entityId];
-//
-//            $indexData = $this->prepareIndexData($entityData);
-//            if ($indexData) {
-//                $indexData[IndexAgent::TMP_ALIAS_FIELD] = $entityAliasTemp;
-//
-//                if ($isUpdate) {
-//                    $indexIdentifier['retry_on_conflict'] = 10;
-//                    $entityData['update'][IndexAgent::TMP_ALIAS_FIELD] = $entityAliasTemp;
-//                    $this->addUpdateInstructions($entityData, $indexIdentifier, $body);
-//                } else {
-//                    $body[] = ['index' => $indexIdentifier];
-//                    $body[] = $indexData;
-//                }
-//            } elseif (!$isUpdate) {
-//                $body[] = ['delete' => $indexIdentifier];
-//            }
-//        }
-//
-//        if ($body) {
-//            $preparedRequest = $this->indexAgent->prepareDataForRequest([
-//                'index' => $indexName,
-//                'body' => $body
-//            ]);
-//
-//            $response = $this->indexAgent->getClient()->bulk($preparedRequest)->asArray();
-//
-//            if ($response['errors']) {
-//                $this->logger->debug('elk prepared request = {request}', ['request' => $preparedRequest]);
-//                $this->logErrors($response, $indexName);
-//                throw new \RuntimeException('Reindex failed');
-//            }
-//        }
-
-
-        // Bulk data in each indices
-//        $itemsCount = 0;
-//        $entityIds = [];
-//        $indexedContextEntityIds = [];
-//        $indexedItemsNum = 0;
-//        // $batchSize = $this->configuration->getBatchSize($metadata, $localizedCatalog); Todo manage batch size config
-//        $batchSize = 10;
-//        foreach ($iterator as $entity) {
-//            $entityIds[] = $entity['id'];
-//            $itemsCount++;
-//            if (\count($entityIds) >= $batchSize) {
-//                $indexedEntityIds = $this->indexEntities($entityClass, $entityIds, $context, $temporaryAlias);
-//                $indexedItemsNum += count($indexedEntityIds);
-//                if ($contextEntityIds) {
-//                    $indexedContextEntityIds = array_merge($indexedContextEntityIds, $indexedEntityIds);
-//                }
-////                $this->indexOperation->executeBulk($index, $bulk);
-//                $entityIds = [];
-//                $entityManager->clear($entityClass);
-//            }
-//        }
-//
-//        if ($itemsCount % $this->getBatchSize() > 0) {
-//            $indexedEntityIds = $this->indexEntities($entityClass, $entityIds, $context, $temporaryAlias);
-//            $indexedItemsNum += count($indexedEntityIds);
-//            if ($contextEntityIds) {
-//                $indexedContextEntityIds = array_merge($indexedContextEntityIds, $indexedEntityIds);
-//            }
-////            $this->indexOperation->executeBulk($index, $bulk);
-//            $entityManager->clear($entityClass);
-//        }
-
-
 
         return array_keys($entitiesData);
     }

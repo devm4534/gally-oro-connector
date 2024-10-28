@@ -72,6 +72,11 @@ class SourceFieldProvider
 
             foreach ($entityConfig['fields'] as $fieldData) {
                 $fieldName = $this->cleanFieldName($fieldData['name']);
+                if ($fieldName === 'visibility_customer') {
+                    // Field managed manually
+                    // @see src/Resources/config/oro/website_search.yml
+                    continue;
+                }
                 $fieldType = $this->typeMapping[$fieldData['type']] ?? SourceField::TYPE_TEXT;
 
                 if (str_ends_with($fieldName, '_enum')) {

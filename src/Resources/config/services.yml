@@ -72,6 +72,12 @@ services:
             - '@oro_website_search.manager.website_context_manager'
             - '@oro_config.manager'
             - '@oro_featuretoggle.checker.feature_checker'
+            - '@oro_website_search.provider.search_mapping'
+            - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@oro_locale.settings'
+            - '@doctrine.orm.entity_manager'
+            - '@oro_entity_extend.enum_type_helper'
+            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
 
     oro_website_search.gally.indexer:
         class: 'Gally\OroPlugin\Engine\GallyIndexer'
