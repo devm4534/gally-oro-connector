@@ -27,7 +27,7 @@ use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderInterface;
 use Oro\Bundle\WebsiteSearchBundle\Resolver\EntityDependenciesResolverInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-class GallyIndexer extends AbstractIndexer
+class Indexer extends AbstractIndexer
 {
     public const CONTEXT_LOCALIZATION = 'localization';
 
@@ -86,74 +86,6 @@ class GallyIndexer extends AbstractIndexer
         }
 
         return parent::reindexEntityClass($entityClass, $context);
-
-
-//        // Create entity iterator
-//        $entityRepository = $this->doctrineHelper->getEntityRepositoryForClass($entityClass);
-//        $entityManager = $this->doctrineHelper->getEntityManager($entityClass);
-//        $queryBuilder = $entityRepository->createQueryBuilder('entity');
-//        $identifierName = $this->doctrineHelper->getSingleEntityIdentifierFieldName($entityClass);
-//        $queryBuilder->select("entity.$identifierName as id");
-//        $contextEntityIds = $context[AbstractIndexer::CONTEXT_ENTITIES_IDS_KEY] ?? [];
-//        if ($contextEntityIds) {
-//            $queryBuilder->where($queryBuilder->expr()->in("entity.$identifierName", ':contextEntityIds'))
-//                ->setParameter('contextEntityIds', array_values($contextEntityIds));
-//        }
-//        $iterator = new BufferedIdentityQueryResultIterator($queryBuilder);
-//        $iterator->setBufferSize($this->getBatchSize());
-//
-//        // Bulk data in each indices
-//        $itemsCount = 0;
-//        $entityIds = [];
-//        $indexedContextEntityIds = [];
-//        $indexedItemsNum = 0;
-//        // $batchSize = $this->configuration->getBatchSize($metadata, $localizedCatalog); Todo manage batch size config
-//        $batchSize = 10;
-//        foreach ($iterator as $entity) {
-//            $entityIds[] = $entity['id'];
-//            $itemsCount++;
-//            if (\count($entityIds) >= $batchSize) {
-//                $indexedEntityIds = $this->indexEntities($entityClass, $entityIds, $context, $temporaryAlias);
-//                $indexedItemsNum += count($indexedEntityIds);
-//                if ($contextEntityIds) {
-//                    $indexedContextEntityIds = array_merge($indexedContextEntityIds, $indexedEntityIds);
-//                }
-////                $this->indexOperation->executeBulk($index, $bulk);
-//                $entityIds = [];
-//                $entityManager->clear($entityClass);
-//            }
-//        }
-//
-//        if ($itemsCount % $this->getBatchSize() > 0) {
-//            $indexedEntityIds = $this->indexEntities($entityClass, $entityIds, $context, $temporaryAlias);
-//            $indexedItemsNum += count($indexedEntityIds);
-//            if ($contextEntityIds) {
-//                $indexedContextEntityIds = array_merge($indexedContextEntityIds, $indexedEntityIds);
-//            }
-////            $this->indexOperation->executeBulk($index, $bulk);
-//            $entityManager->clear($entityClass);
-//        }
-//
-//        if ($contextEntityIds) {
-//            // Todo manage deleted item on partial reindex ?
-////            $removedContextEntityIds = array_diff($contextEntityIds, $indexedContextEntityIds);
-////            if ($removedContextEntityIds) {
-////                $this->deleteEntities($entityClass, $removedContextEntityIds, $context);
-////            }
-//        } else {
-//            $this->indexOperation->refreshIndex($index);
-//            $this->indexOperation->installIndex($index);
-//        }
-//
-//        $afterReindexEvent = new AfterReindexEvent(
-//            $entityClass,
-//            $context,
-//            $indexedContextEntityIds,
-//            $removedContextEntityIds ?? []
-//        );
-//        $this->eventDispatcher->dispatch($afterReindexEvent, AfterReindexEvent::EVENT_NAME);
-//
-//        return $indexedItemsNum;
     }
 
     protected function indexEntities($entityClass, array $entityIds, array $context, $aliasToSave): array
@@ -190,35 +122,17 @@ class GallyIndexer extends AbstractIndexer
         return $this->localizedCatalogByWebsite[$catalogCode]; //todo if undefined ??
     }
 
-//    public function save($entity, array $context = [])
-//    {
-//        $toto = 'blop';
-//        // TODO: Implement save() method.
-//    }
-
     public function delete($entity, array $context = [])
     {
         $toto = 'blop';
         // TODO: Implement delete() method.
     }
 
-//    public function getClassesForReindex($class = null, array $context = [])
-//    {
-//        $toto = 'blop';
-//        // TODO: Implement getClassesForReindex() method.
-//    }
-
     public function resetIndex($class = null, array $context = [])
     {
         $toto = 'blop';
         // TODO: Implement resetIndex() method.
     }
-
-//    public function reindex($class = null, array $context = [])
-//    {
-//        $toto = 'blop';
-//        // TODO: Implement reindex() method.
-//    }
 
     protected function saveIndexData($entityClass, array $entitiesData, $entityAliasTemp, array $context)
     {
@@ -254,17 +168,6 @@ class GallyIndexer extends AbstractIndexer
         foreach ($this->indicesByLocale as $index) {
             $this->indexOperation->refreshIndex($index);
             $this->indexOperation->installIndex($index);
-        }
-    }
-
-    /**
-     * @return iterable<ContentNode>
-     */
-    private function getTree(ContentNode $node): iterable
-    {
-        yield $node;
-        foreach ($node->getChildNodes() as $childNode) {
-            $this->getTree($childNode);
         }
     }
 }

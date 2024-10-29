@@ -122,6 +122,7 @@ class SourceFieldProvider
 
     public function cleanFieldName(string $fieldName): string
     {
+        // Todo customer placeHolder helper here !
         foreach ($this->placeholderRegistry->getPlaceholders() as $placeholder) {
             $fieldName = $placeholder->replace($fieldName, [$placeholder->getPlaceholder() => null]);
         }

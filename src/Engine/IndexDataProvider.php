@@ -118,7 +118,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         $nodeIds = [];
 
         /** @var Localization $localization */
-        $localization = $context[GallyIndexer::CONTEXT_LOCALIZATION];
+        $localization = $context[Indexer::CONTEXT_LOCALIZATION];
         $website = $this->websiteContextManager->getWebsite($context);
         $defaultCurrency = $this->currencyProvider->getWebsiteDefaultCurrency($website->getId());
         $defaultPriceList = $this->getDefaultPriceListForWebsite($website);

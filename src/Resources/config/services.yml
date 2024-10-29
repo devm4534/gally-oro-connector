@@ -8,6 +8,10 @@ parameters:
         password: 'apassword'
 
 services:
+    Gally\OroPlugin\Placeholder\PlaceholderDecorator:
+        arguments:
+            - '@oro_website_search.placeholder.registry'
+
     Gally\OroPlugin\Provider\CatalogProvider:
         arguments:
             - '@doctrine.orm.entity_manager'
@@ -80,7 +84,7 @@ services:
             - '@Gally\OroPlugin\Provider\SourceFieldProvider'
 
     oro_website_search.gally.indexer:
-        class: 'Gally\OroPlugin\Engine\GallyIndexer'
+        class: 'Gally\OroPlugin\Engine\Indexer'
         arguments:
             - '@oro_entity.doctrine_helper'
             - '@oro_website_search.provider.search_mapping'
@@ -101,25 +105,41 @@ services:
         tags:
             - { name: 'oro_website_search.engine.indexer', engine_name: 'gally' }
 
+    Gally\OroPlugin\RequestBuilder\GallyRequestBuilder: ~
+
+    Gally\OroPlugin\Resolver\QueryPlaceholderResolver:
+        public: false
+        arguments:
+            - '@Gally\OroPlugin\Placeholder\PlaceholderDecorator'
+
     oro_website_search.gally.engine:
-        class: 'Oro\Bundle\WebsiteElasticSearchBundle\Engine\ElasticSearchEngine'
+        class: 'Gally\OroPlugin\Engine\SearchEngine'
         arguments:
             - '@event_dispatcher'
-            - '@oro_website_search.resolver.query_placeholder'
+            - '@Gally\OroPlugin\Resolver\QueryPlaceholderResolver'
             - '@oro_website_search.provider.search_mapping'
-            - '@oro_website_elastic_search.engine.index_agent'
-            - '@oro_website_elastic_search.request_builder.registry'
+#            - '@oro_website_elastic_search.engine.index_agent'
+#            - '@oro_website_elastic_search.request_builder.registry'
+            - '@Gally\Sdk\Service\SearchManager'
+            - '@Gally\OroPlugin\RequestBuilder\GallyRequestBuilder'
         calls:
             - ['setMapper', ['@oro_website_search.engine.mapper']]
-            - ['setPlaceholderHelper', ['@oro_website_search.helper.placeholder_helper']]
         tags:
             - { name: 'oro_website_search.engine', engine_name: 'gally' }
 
+    Gally\OroPlugin\Extension\SortableAttributesExtension:
+        arguments:
+            - '@Gally\Sdk\Service\SearchManager'
+        tags:
+            - { name: oro_datagrid.extension }
+
+    # Todo why this ??
     Gally\OroPlugin\Decorator\ProductIndexFieldsProvider:
         decorates: oro_product.provider.index_fields
         arguments:
             - '@.inner'
 
+    # Todo why this ??
     oro_product.provider.index_fields:
         class: 'Oro\Bundle\ProductBundle\Search\ProductIndexFieldsProvider'
         public: false
@@ -129,191 +149,3 @@ services:
             - [addForceIndexed,  ['names']]
             - [addForceIndexed,  ['shortDescriptions']]
             - [addForceIndexed,  ['newArrival']]
-
-#    oro_website_search.driver.customer_partial_update_driver.gally:
-#        class: 'Oro\Bundle\CustomerProBundle\Driver\ElasticSearchCustomerPartialUpdateDriver'
-#        arguments:
-#            - '@oro_website_search.provider.placeholder_provider'
-#            - '@oro_visibility.visibility.provider.product_visibility_provider'
-#            - '@oro_entity.doctrine_helper'
-#            - '@oro_website_elastic_search.partial_update.manager'
-#        tags:
-#            - { name: 'oro_website_search.customer_partial_update_driver', engine_name: 'gally' }
-#
-#    oro_website_elasticsearch.engine.parameters_provider:
-#        class: 'Gally\OroPlugin\Provider\GallyEngineParametersProvider'
-#        public: true
-#        arguments:
-#            - '@oro_website_search.engine.parameters'
-#            - '@parameter_bag'
-#            - 'oro_website_search.engine_parameters'
-
-#    oro_website_elastic_search.attribute.filter.attribute_mapping_filter:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Attribute\Filter\AttributeMappingFilter
-#        arguments:
-#            - '@doctrine'
-
-#    oro_website_elastic_search.engine.index_agent:
-#        class: 'Oro\Bundle\WebsiteElasticSearchBundle\Engine\IndexAgent'
-#        public: false
-#        arguments:
-#            - '@oro_website_elastic_search.client.factory'
-#            - '@oro_elasticsearch.requirements_checker'
-#            - '@oro_website_search.provider.search_mapping'
-#            - "@=service('oro_website_elasticsearch.engine.parameters_provider').getEngineParameters()"
-#            - '@oro_website_search.regex_placeholder_decorator'
-#            - '@oro_website_search.website_id.placeholder'
-#            - '@oro_website.provider.website_localization'
-#            - '@oro_website_elastic_search.attribute.filter.attribute_mapping_filter'
-#            - '@event_dispatcher'
-#        calls:
-#            - ['setLanguageAnalyzers', ['%oro_elasticsearch.language_analyzers%']]
-#            - ['setFieldTypeMapping', ['%oro_elasticsearch.field_type_mapping%']]
-#            - ['setLogger', ['@logger']]
-
-#    oro_website_elastic_search.reindexation_website_provider:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Provider\ReindexationWebsiteProvider
-#        decorates: oro_website_search.reindexation_website_provider
-#        arguments:
-#            - '@.inner'
-#            - '@doctrine'
-
-#    oro_website_elastic_search.result_set_iterator.factory:
-#        class: Oro\Bundle\ElasticSearchBundle\ResultSetIterator\ResultSetIteratorFactory
-#        arguments:
-#            - '@oro_website_elastic_search.engine.index_agent'
-#
-#    oro_website_elastic_search.checker.voter.fuzzy_search:
-#        class: Oro\Bundle\ElasticSearchBundle\Checker\Voter\FuzzySearchVoter
-#        arguments:
-#            - '@oro_website_search.engine.parameters'
-#            - 'storefront_fuzzy_search'
-#        tags:
-#            - { name: oro_featuretogle.voter }
-#
-#    oro_website_elastic_search.command.synonyms_refresh:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Command\SynonymsRefreshCommand
-#        arguments:
-#            - '@oro_website_elastic_search.manager.synonyms_manager'
-#        tags:
-#            - { name: console.command }
-#
-#    oro_website_elastic_search.manager.synonyms_manager:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Manager\SynonymsManager
-#        arguments:
-#            - '@oro_website_elastic_search.engine.index_agent'
-#            - '@oro_website_elastic_search.provider.real_index_name'
-#            - '@oro_website.website.provider'
-#            - '@oro_website_elastic_search.provider.synonyms_aware_entities'
-#            - '@oro_website_elastic_search.provider.synonyms'
-#        calls:
-#            - [setLogger, ['@logger']]
-#        tags:
-#            - { name: monolog.logger, channel: oro_website_elastic_search }
-#
-#    oro_website_elastic_search.event_listener.synonym:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\EventListener\Entity\SynonymListener
-#        arguments:
-#            - '@oro_website_elastic_search.manager.synonyms_manager'
-#        tags:
-#            - { name: doctrine.orm.entity_listener, entity: 'Oro\Bundle\WebsiteElasticSearchBundle\Entity\Synonym', event: postPersist }
-#            - { name: doctrine.orm.entity_listener, entity: 'Oro\Bundle\WebsiteElasticSearchBundle\Entity\Synonym', event: postUpdate }
-#            - { name: doctrine.orm.entity_listener, entity: 'Oro\Bundle\WebsiteElasticSearchBundle\Entity\Synonym', event: postRemove }
-#            - { name: doctrine.event_listener, event: postFlush }
-#
-#    oro_website_elastic_search.event_listener.synonym_index_settings:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\EventListener\SynonymIndexSettingsEventListener
-#        arguments:
-#            - '@oro_website_elastic_search.provider.synonyms'
-#            - '@oro_website_elastic_search.provider.synonyms_aware_entities'
-#        tags:
-#            - { name: kernel.event_listener, event: oro_website_elastic_search.index_settings, method: onIndexSettings }
-#
-#    oro_website_elastic_search.event_listener.config.change_synonyms_config:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\EventListener\Config\ChangeSynonymsConfigListener
-#        arguments:
-#            - '@oro_website_elastic_search.manager.synonyms_manager'
-#        tags:
-#            - { name: kernel.event_listener, event: oro_config.update_after, method: onConfigUpdate }
-#            - { name: oro_featuretogle.feature, feature: elastic_search_engine }
-#
-#    oro_website_elastic_search.provider.synonyms_aware_entities:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Provider\SynonymsAwareEntitiesProvider
-#        arguments:
-#            - '@oro_website_search.provider.search_mapping'
-#            - '@oro_entity.entity_alias_resolver'
-#
-#    oro_website_elastic_search.provider.synonyms:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Provider\SynonymsProvider
-#        arguments:
-#            - '@doctrine'
-#            - '@oro_entity.entity_alias_resolver'
-#            - '@oro_config.manager'
-#            - '@oro_website_elastic_search.util.synonyms_sanitizer'
-#        calls:
-#            - [setLogger, ['@logger']]
-#        tags:
-#            - { name: monolog.logger, channel: oro_website_elastic_search }
-#
-#    oro_website_elastic_search.util.synonyms_sanitizer:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Util\SynonymsSanitizer
-#
-#    oro_website_elastic_search.validator.synonym_aware_entity_aliases:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Validator\Constraints\SynonymAwareEntityAliasesValidator
-#        arguments:
-#            - '@oro_website_elastic_search.provider.synonyms_aware_entities'
-#        tags:
-#            - { name: validator.constraint_validator }
-#
-#    oro_website_elastic_search.event_listener.synonym_grid_listener:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\EventListener\SynonymGridListener
-#        arguments:
-#            - '@oro_website_elastic_search.provider.synonyms_aware_entities'
-#        tags:
-#            - { name: kernel.event_listener, event: oro_datagrid.datagrid.build.before.websitesearch-synonym-grid, method: onBuildBefore }
-#
-#    oro_website_elastic_search.formatter.elasticsearch_decimal_flat_value_formatter:
-#        class: 'Oro\Bundle\ElasticSearchBundle\Formatter\ElasticsearchDecimalFlatValueFormatter'
-#        decorates: 'oro_website_search.formatter.decimal_flat_value_formatter'
-#        arguments:
-#            - '@.inner'
-#            - '@oro_website_search.engine.parameters'
-#
-#    oro_website_elastic_search.provider.stop_words:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Provider\StopWordsProvider
-#        arguments:
-#            - '@doctrine'
-#            - '@oro_config.manager'
-#
-#    oro_website_elastic_search.event_listener.config.change_stop_words_config:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\EventListener\Config\ChangeStopWordsConfigListener
-#        arguments:
-#            - '@oro_website_elastic_search.manager.stop_words_manager'
-#        tags:
-#            - { name: kernel.event_listener, event: oro_config.update_after, method: onConfigUpdate }
-#            - { name: oro_featuretogle.feature, feature: elastic_search_engine }
-#
-#    oro_website_elastic_search.manager.stop_words_manager:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Manager\StopWordsManager
-#        arguments:
-#            - '@oro_website_elastic_search.engine.index_agent'
-#            - '@oro_website_elastic_search.provider.real_index_name'
-#            - '@oro_website.website.provider'
-#            - '@oro_website_elastic_search.provider.stop_words_aware_entities'
-#            - '@oro_website_elastic_search.provider.stop_words'
-#        calls:
-#            - [setLogger, ['@logger']]
-#        tags:
-#            - { name: monolog.logger, channel: oro_website_elastic_search }
-#
-#    oro_website_elastic_search.provider.stop_words_aware_entities:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Provider\StopWordsAwareEntitiesProvider
-#        arguments:
-#            - '@oro_website_search.provider.search_mapping'
-#
-#    oro_website_elastic_search.command.stop_words_refresh:
-#        class: Oro\Bundle\WebsiteElasticSearchBundle\Command\StopWordsRefreshCommand
-#        arguments:
-#            - '@oro_website_elastic_search.manager.stop_words_manager'
-#        tags:
-#            - { name: console.command }

@@ -13,3 +13,8 @@ services:
         arguments:
             - '@Gally\Sdk\Client\Configuration'
             - '%kernel.environment%'
+
+    Gally\Sdk\Service\SearchManager:
+        arguments:
+            - '@Gally\Sdk\Client\Configuration'
+            - '%kernel.environment%'

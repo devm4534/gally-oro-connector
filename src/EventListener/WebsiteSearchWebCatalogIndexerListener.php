@@ -3,7 +3,7 @@
 namespace Gally\OroPlugin\EventListener;
 
 use Doctrine\Persistence\ManagerRegistry;
-use Gally\OroPlugin\Engine\GallyIndexer;
+use Gally\OroPlugin\Engine\Indexer;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
 use Oro\Bundle\ProductBundle\EventListener\WebsiteSearchProductIndexerListenerInterface;
@@ -37,7 +37,7 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
         }
 
         /** @var Localization $localization */
-        $localization = $event->getContext()[GallyIndexer::CONTEXT_LOCALIZATION];
+        $localization = $event->getContext()[Indexer::CONTEXT_LOCALIZATION];
         $website = $this->getWebsite($event);
         if (!$website) {
             $event->stopPropagation();
