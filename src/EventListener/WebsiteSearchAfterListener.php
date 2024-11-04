@@ -2,22 +2,18 @@
 
 namespace Gally\OroPlugin\EventListener;
 
+use Gally\OroPlugin\Registry\SearchRegistry;
 use Oro\Bundle\WebsiteSearchBundle\Event\AfterSearchEvent;
 
-/**
- * Add web catalog node related data to search index
- */
-class WebsiteSearchSaveAggregationsListener
+class WebsiteSearchAfterListener
 {
-    public array $aggregations = []; // Todo private
-
     public function __construct(
+        private SearchRegistry $registry,
     ) {
     }
 
     public function onSearchAfter(AfterSearchEvent $event): void
     {
-        // Todo manage partial update ?
-        $this->aggregations = $event->getResult()->getAggregatedData();
+        $this->registry->setAggregations($event->getResult()->getAggregatedData());
     }
 }

@@ -51,8 +51,14 @@ class SearchEngine extends AbstractEngine
             );
         }
 
-//        $aggregatedData = $this->parseAggregatedData($response);
+        $aggregations = [];
+        foreach ($response->getAggregations() as $aggregation) {
+            $field = $aggregation['field'];
+            foreach ($aggregation['options'] as $option) {
+                $aggregations[$field][$option['value']] = $option['count'];
+            }
+        }
 
-        return new Result($query, $results, $response->getTotalCount(), [] /* $aggregatedData */);
+        return new Result($query, $results, $response->getTotalCount(), $aggregations);
     }
 }

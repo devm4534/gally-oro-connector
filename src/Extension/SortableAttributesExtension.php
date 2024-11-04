@@ -15,7 +15,8 @@ use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
 class SortableAttributesExtension extends AbstractExtension
 {
     public function __construct(
-        private SearchManager $searchManager
+        private SearchManager                                             $searchManager,
+        private \Gally\OroPlugin\EventListener\WebsiteSearchAfterListener $listener,
     ) {
     }
 
@@ -59,6 +60,36 @@ class SortableAttributesExtension extends AbstractExtension
             ];
             $config->offsetAddToArrayByPath('[columns]', [$attribute->getCode() => $columnData]);
         }
+    }
+
+    public function visitMetadata(DatagridConfiguration $config, MetadataObject $object)
+    {
+        $aggs = $this->listener->aggregations;
+        $choices = $object->offsetGetByPath('[filters][0][choices]');
+        $object->offsetAddToArrayByPath(
+            '[filters]',
+            [
+                [
+                    'name' => 'test_color',
+                    'label' => 'Cumtom filter',
+                    'choices' => $choices,
+                    'type' => 'string',
+                    'max_length' => 255,
+                    'renderable' => true,
+                    'visible' => true,
+                    'disabled' => false,
+                    'translatable' => true,
+                    'force_like' => false,
+                    'case_insensitive' => true,
+                    'min_length' => 0,
+                    'order' => 1,
+                    'lazy' => false,
+                    'cacheId' => null,
+                ]
+            ]
+        );
+
+        $toto = 'blop';
     }
 
     public function getPriority()

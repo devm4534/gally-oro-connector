@@ -83,6 +83,12 @@ services:
             - '@oro_entity_extend.enum_type_helper'
             - '@Gally\OroPlugin\Provider\SourceFieldProvider'
 
+    Gally\OroPlugin\Registry\SearchRegistry: ~
+
+    Gally\OroPlugin\EventListener\WebsiteSearchAfterListener:
+        tags:
+            - { name: kernel.event_listener, event: oro_website_search.after_search, method: onSearchAfter }
+
     oro_website_search.gally.indexer:
         class: 'Gally\OroPlugin\Engine\Indexer'
         arguments:
@@ -130,6 +136,7 @@ services:
     Gally\OroPlugin\Extension\SortableAttributesExtension:
         arguments:
             - '@Gally\Sdk\Service\SearchManager'
+            - '@Gally\OroPlugin\EventListener\WebsiteSearchSaveAggregationsListener'
         tags:
             - { name: oro_datagrid.extension }
 
