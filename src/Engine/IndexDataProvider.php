@@ -156,7 +156,14 @@ class IndexDataProvider extends BaseIndexDataProvider
                         $nodeIds[] = $placeholders[AssignIdPlaceholder::NAME];
                     } elseif (str_starts_with($fieldName, 'assigned_to_sort_order.')) {
                         $nodeId = $placeholders[AssignIdPlaceholder::NAME];
-                        $categories[$nodeId]['position'] = (int) $value;
+                        $categories[$nodeId]['id'] = $nodeId;
+                        $nodeIds[] = $placeholders[AssignIdPlaceholder::NAME];
+                    } elseif (str_starts_with($fieldName, 'category_path')) {
+                        // Todo
+                    } elseif (str_starts_with($fieldName, 'manually_added_to')) {
+                        // Todo
+                    } elseif (str_starts_with($fieldName, 'ordered_at_by')) {
+                        // Todo
                     } elseif (str_starts_with($fieldName, 'minimal_price.')) {
                         if (
                             str_contains($fieldName, UnitPlaceholder::NAME)
