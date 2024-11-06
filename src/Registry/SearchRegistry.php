@@ -3,6 +3,7 @@
 namespace Gally\OroPlugin\Registry;
 
 use Gally\Sdk\Entity\SourceField;
+use Gally\Sdk\GraphQl\Response;
 use Gally\Sdk\Service\SearchManager;
 use Oro\Bundle\DataGridBundle\Datagrid\Common\DatagridConfiguration;
 use Oro\Bundle\DataGridBundle\Datagrid\Common\MetadataObject;
@@ -14,15 +15,15 @@ use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
  */
 class SearchRegistry
 {
-    private array $aggregations;
+    private Response $response;
 
-    public function getAggregations(): array
+    public function getResponse(): Response
     {
-        return $this->aggregations;
+        return $this->response;
     }
 
-    public function setAggregations(array $aggregations): void
+    public function setResponse(Response $response): void
     {
-        $this->aggregations = $aggregations;
+        $this->response = $response;
     }
 }

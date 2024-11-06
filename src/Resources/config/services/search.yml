@@ -1,0 +1,47 @@
+services:
+    Gally\OroPlugin\Registry\SearchRegistry: ~
+
+    Gally\OroPlugin\RequestBuilder\GallyRequestBuilder: ~
+
+    Gally\OroPlugin\Filter\SelectFilter:
+        public: false
+        arguments:
+            - '@form.factory'
+            - '@oro_filter.filter_utility'
+            - '@oro_entity.manager.dictionary.api'
+        tags:
+            - { name: oro_search.extension.search_filter.filter, type: gally-select }
+
+    Gally\OroPlugin\Form\SelectFormFilter:
+        tags:
+            - { name: form.type, alias: gally_search_type_select_filter }
+
+    Gally\OroPlugin\Engine\SearchEngine:
+        arguments:
+            - '@event_dispatcher'
+            - '@Gally\OroPlugin\Resolver\QueryPlaceholderResolver'
+            - '@oro_website_search.provider.search_mapping'
+            #            - '@oro_website_elastic_search.engine.index_agent'
+            #            - '@oro_website_elastic_search.request_builder.registry'
+            - '@Gally\Sdk\Service\SearchManager'
+            - '@Gally\OroPlugin\RequestBuilder\GallyRequestBuilder'
+            - '@Gally\OroPlugin\Registry\SearchRegistry'
+        calls:
+            - ['setMapper', ['@oro_website_search.engine.mapper']]
+        tags:
+            - { name: 'oro_website_search.engine', engine_name: 'gally' }
+
+    Gally\OroPlugin\Extension\GallyDataBeforeGridExtension:
+        arguments:
+            - '@Gally\Sdk\Service\SearchManager'
+            - '@Gally\OroPlugin\Registry\SearchRegistry'
+            - '@oro_entity_extend.enum_type_helper'
+        tags:
+            - { name: oro_datagrid.extension }
+
+    Gally\OroPlugin\Extension\GallyDataAfterGridExtension:
+        arguments:
+            - '@Gally\Sdk\Service\SearchManager'
+            - '@Gally\OroPlugin\Registry\SearchRegistry'
+        tags:
+            - { name: oro_datagrid.extension }

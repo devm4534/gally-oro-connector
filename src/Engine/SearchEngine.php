@@ -2,6 +2,7 @@
 
 namespace Gally\OroPlugin\Engine;
 
+use Gally\OroPlugin\Registry\SearchRegistry;
 use Gally\OroPlugin\RequestBuilder\GallyRequestBuilder;
 use Gally\Sdk\Service\SearchManager;
 use Oro\Bundle\SearchBundle\Provider\AbstractSearchMappingProvider;
@@ -26,6 +27,7 @@ class SearchEngine extends AbstractEngine
         AbstractSearchMappingProvider $mappingProvider,
         private SearchManager $searchManager,
         private GallyRequestBuilder $requestBuilder,
+        private SearchRegistry $registry,
     ) {
         parent::__construct($eventDispatcher, $queryPlaceholderResolver, $mappingProvider);
     }
@@ -39,6 +41,7 @@ class SearchEngine extends AbstractEngine
     {
         $request = $this->requestBuilder->build($query, $context);
         $response = $this->searchManager->searchProduct($request);
+        $this->registry->setResponse($response);
 
         $results = [];
         foreach ($response->getCollection() as $item) {

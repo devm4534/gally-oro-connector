@@ -48,7 +48,8 @@ class GallyRequestBuilder
         $catalog = new Catalog('website_1', 'Test');
         return new LocalizedCatalog(
             $catalog,
-            'website_1_en_US',
+//            'website_1_en_US',
+            'website_1_fr_CA',
             'Blop',
             'en_US',
             'EUR'

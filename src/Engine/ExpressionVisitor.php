@@ -33,6 +33,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
             'IN' => Request::FILTER_OPERATOR_IN,
             'LIKE' => Request::FILTER_OPERATOR_MATCH,
             default => Request::FILTER_OPERATOR_EQ,
+            // todo add EXISTS
         };
 
         if ($field === 'all_text') {
