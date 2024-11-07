@@ -31,6 +31,8 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  */
 class SearchEngine extends AbstractEngine
 {
+    public const ENGINE_NAME = 'gally';
+
     protected Mapper $mapper;
 
     public function __construct(

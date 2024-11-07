@@ -25,6 +25,20 @@ services:
         arguments:
             - '@Gally\OroPlugin\Placeholder\PlaceholderDecorator'
 
+    oro_website_elastic_search.voter.elastic_search_engine_feature_voter:
+        class: Gally\OroPlugin\Voter\ElasticSearchEngineFeatureVoter
+        arguments:
+            - '@oro_website_search.engine.parameters'
+        tags:
+            - { name: oro_featuretogle.voter }
+
+    Oro\Bundle\CustomerRecommendationBundle\Checker\Voter\CustomerRecommendationVoter:
+        class: Gally\OroPlugin\Voter\ElasticSearchEngineFeatureVoter
+        arguments:
+            - '@oro_website_search.engine.parameters'
+        tags:
+            - { name: oro_featuretogle.voter }
+
 imports:
     - { resource: services/sdk.yml }
     - { resource: services/indexer.yml }

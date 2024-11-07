@@ -1,8 +1,20 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
 
-namespace Oro\Bundle\WebsiteElasticSearchBundle\Voter;
+declare(strict_types=1);
 
-use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
+namespace Gally\OroPlugin\Voter;
+
+use Gally\OroPlugin\Engine\SearchEngine;
 use Oro\Bundle\FeatureToggleBundle\Checker\Voter\VoterInterface;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 
@@ -25,14 +37,18 @@ class ElasticSearchEngineFeatureVoter implements VoterInterface
      */
     public function vote($feature, $scopeIdentifier = null)
     {
-        if ($feature !== self::ELASTIC_SEARCH_ENGINE_FEATURE_KEY) {
-            return self::FEATURE_ABSTAIN;
+        if ('elastic_search_engine' === $feature
+            || 'recommendation_action_boost' === $feature
+            || 'total_revenue_boost' === $feature) {
+            if (SearchEngine::ENGINE_NAME === $this->engineParametersBag->getEngineName()
+                || 'elastic_search' === $this->engineParametersBag->getEngineName()
+            ) {
+                return self::FEATURE_ENABLED;
+            }
+
+            return self::FEATURE_DISABLED;
         }
 
-        if ($this->engineParametersBag->getEngineName() === ElasticSearch::ENGINE_NAME) {
-            return self::FEATURE_ENABLED;
-        }
-
-        return self::FEATURE_DISABLED;
+        return VoterInterface::FEATURE_ABSTAIN;
     }
 }

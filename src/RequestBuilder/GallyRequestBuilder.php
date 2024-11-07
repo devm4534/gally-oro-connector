@@ -79,6 +79,12 @@ class GallyRequestBuilder
             if ('names' === $name) {
                 $name = 'name';
             }
+            if ('system_entity_id' === $name) {
+                $name = 'id';
+            }
+            if ('inv_status' == $name) { // todo
+                continue;
+            }
             $selectedFields[] = $name;
         }
 
@@ -133,6 +139,7 @@ class GallyRequestBuilder
             $filters = $visitor->dispatch($expression);
         }
 
-        return [$visitor->getCurrentCategoryId(), $visitor->getSearchQuery(), [$filters]];
+        //        return [$visitor->getCurrentCategoryId(), $visitor->getSearchQuery(), [$filters]];
+        return [$visitor->getCurrentCategoryId(), $visitor->getSearchQuery(), []];
     }
 }
