@@ -12,10 +12,7 @@ use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
 use Oro\Bundle\EntityConfigBundle\Exception\RuntimeException;
 use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
-use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
-use Oro\Bundle\SearchBundle\Query\Query;
-use Oro\Bundle\WebCatalogBundle\Entity\WebCatalog;
 use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderRegistry;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -23,20 +20,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * Gally Catalog data provider.
  */
-class SourceFieldProvider
+class SourceFieldProvider implements ProviderInterface
 {
-    // Get this from conf todo
-    private array $entityCodeMapping = [
-        'contentnode' => 'category',
-    ];
-
-    private array $typeMapping = [
-        Query::TYPE_TEXT => SourceField::TYPE_TEXT,
-        Query::TYPE_DECIMAL => SourceField::TYPE_FLOAT,
-        Query::TYPE_INTEGER => SourceField::TYPE_INT,
-        Query::TYPE_DATETIME => SourceField::TYPE_DATE,
-    ];
-
     /** @var LocalizedCatalog[] */
     private array $localizedCatalogs = [];
 
@@ -48,6 +33,8 @@ class SourceFieldProvider
         private PlaceholderRegistry $placeholderRegistry,
         private TranslatorInterface $translator,
         private LocaleSettings $localeSettings,
+        private array $entityCodeMapping,
+        private array $typeMapping,
     ) {
         foreach ($this->catalogProvider->provide() as $localizedCatalog) {
             $this->localizedCatalogs[] = $localizedCatalog;
@@ -72,14 +59,13 @@ class SourceFieldProvider
 
             foreach ($entityConfig['fields'] as $fieldData) {
                 $fieldName = $this->cleanFieldName($fieldData['name']);
+                $fieldType = $this->typeMapping[$fieldData['type']] ?? SourceField::TYPE_TEXT;
+
                 if ($fieldName === 'visibility_customer') {
                     // Field managed manually
                     // @see src/Resources/config/oro/website_search.yml
                     continue;
-                }
-                $fieldType = $this->typeMapping[$fieldData['type']] ?? SourceField::TYPE_TEXT;
-
-                if (str_ends_with($fieldName, '_enum')) {
+                } elseif (str_ends_with($fieldName, '_enum')) {
                     $fieldName = preg_replace('/_enum$/', '', $fieldName);
                     $fieldType = SourceField::TYPE_SELECT;
                 }
@@ -122,7 +108,6 @@ class SourceFieldProvider
 
     public function cleanFieldName(string $fieldName): string
     {
-        // Todo customer placeHolder helper here !
         foreach ($this->placeholderRegistry->getPlaceholders() as $placeholder) {
             $fieldName = $placeholder->replace($fieldName, [$placeholder->getPlaceholder() => null]);
         }

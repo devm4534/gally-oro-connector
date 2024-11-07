@@ -1,8 +1,8 @@
 services:
     Gally\Sdk\Client\Configuration:
-        factory: [null, 'create']
+        factory: ['\Gally\OroPlugin\Factory\ConfigurationFactory', 'create']
         arguments:
-            $gallyConf: '%gally%'
+            - '@oro_website_search.engine.parameters'
 
     Gally\Sdk\Service\StructureSynchonizer:
         arguments:

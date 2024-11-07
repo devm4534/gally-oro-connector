@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Command;
 
-use Gally\OroPlugin\Provider\CatalogProvider;
-use Gally\OroPlugin\Provider\SourceFieldOptionProvider;
-use Gally\OroPlugin\Provider\SourceFieldProvider;
-use Gally\Sdk\Client\Configuration;
+use Gally\OroPlugin\Provider\ProviderInterface;
 use Gally\Sdk\Service\StructureSynchonizer;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -21,45 +18,39 @@ class StructureSync extends Command
     /** @var string */
     protected static $defaultName = 'gally:structure-sync';
 
+    /** @var iterable<ProviderInterface> $providers*/
+    private array $providers;
+    private array $syncMethod = [
+        'catalog' => 'syncAllLocalizedCatalogs',
+        'sourceField' => 'syncAllSourceFields',
+        'sourceFieldOption' => 'syncAllSourceFieldOptions',
+    ];
+
     public function __construct(
-        private CatalogProvider $catalogProvider,
-        private SourceFieldProvider $sourceFieldProvider,
-        private SourceFieldOptionProvider $sourceFieldOptionProvider,
         private StructureSynchonizer $synchonizer,
+        \IteratorAggregate $providers,
     ) {
         parent::__construct();
+        $this->providers = iterator_to_array($providers);
     }
 
     protected function configure(): void
     {
-        $this
-            ->setDescription('Sync catalog structure with Gally.');
+        $this->setDescription('Sync catalog structure with Gally.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('');
 
-        $message = "<comment>Sync Catalogs</comment>";
-        $time = microtime(true);
-        $output->writeln("$message ...");
-        $this->synchonizer->syncAllLocalizedCatalogs($this->catalogProvider->provide());
-        $time = number_format(microtime(true) - $time, 2);
-        $output->writeln("\033[1A$message <info>✔</info> ($time)s");
-
-        $message = "<comment>Sync SourceFields</comment>";
-        $time = microtime(true);
-        $output->writeln("$message ...");
-        $this->synchonizer->syncAllSourceFields($this->sourceFieldProvider->provide());
-        $time = number_format(microtime(true) - $time, 2);
-        $output->writeln("\033[1A$message <info>✔</info> ($time)s");
-
-        $message = "<comment>Sync SourceField Options</comment>";
-        $time = microtime(true);
-        $output->writeln("$message ...");
-        $this->synchonizer->syncAllSourceFieldOptions($this->sourceFieldOptionProvider->provide());
-        $time = number_format(microtime(true) - $time, 2);
-        $output->writeln("\033[1A$message <info>✔</info> ($time)s");
+        foreach ($this->syncMethod as $entity => $method) {
+            $message = "<comment>Sync $entity</comment>";
+            $time = microtime(true);
+            $output->writeln("$message ...");
+            $this->synchonizer->$method($this->providers[$entity]->provide());
+            $time = number_format(microtime(true) - $time, 2);
+            $output->writeln("\033[1A$message <info>✔</info> ($time)s");
+        }
 
         $output->writeln('');
 

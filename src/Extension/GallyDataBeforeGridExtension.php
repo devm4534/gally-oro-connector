@@ -37,7 +37,7 @@ class GallyDataBeforeGridExtension extends AbstractExtension
     public function visitDatasource(DatagridConfiguration $config, DatasourceInterface $datasource)
     {
         $this->addFilterFieldsFromGallyConfiguration($config);
-//        $this->addSortFieldsFromGallyConfiguration($config);
+        $this->addSortFieldsFromGallyConfiguration($config);
     }
 
     public function visitMetadata(DatagridConfiguration $config, MetadataObject $object)

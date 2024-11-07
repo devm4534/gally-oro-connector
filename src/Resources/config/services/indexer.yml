@@ -9,6 +9,8 @@ services:
             - '@doctrine.orm.entity_manager'
             - '@oro_website.provider.website_localization'
             - '@oro_pricing.provider.website_currency_provider'
+        tags:
+            - { name: 'gally.dataprovider', entity: 'catalog' }
 
     Gally\OroPlugin\Provider\SourceFieldProvider:
         arguments:
@@ -19,6 +21,10 @@ services:
             - '@oro_website_search.placeholder.registry'
             - '@translator'
             - '@oro_locale.settings'
+            - '%gally_config.entity_mapping%'
+            - '%gally_config.attribute_type_mapping%'
+        tags:
+            - { name: 'gally.dataprovider', entity: 'sourceField' }
 
     Gally\OroPlugin\Provider\SourceFieldOptionProvider:
         arguments:
@@ -28,13 +34,13 @@ services:
             - '@doctrine.orm.entity_manager'
             - '@oro_entity_extend.enum_type_helper'
             - '@Gally\OroPlugin\Provider\SourceFieldProvider'
+        tags:
+            - { name: 'gally.dataprovider', entity: 'sourceFieldOption' }
 
     Gally\OroPlugin\Command\StructureSync:
         arguments:
-            - '@Gally\OroPlugin\Provider\CatalogProvider'
-            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
-            - '@Gally\OroPlugin\Provider\SourceFieldOptionProvider'
             - '@Gally\Sdk\Service\StructureSynchonizer'
+            - !tagged_iterator { tag: 'gally.dataprovider', index_by: 'entity' }
         tags:
             - { name: console.command }
 

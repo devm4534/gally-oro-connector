@@ -23,7 +23,7 @@ use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 /**
  * Gally Catalog data provider.
  */
-class SourceFieldOptionProvider
+class SourceFieldOptionProvider implements ProviderInterface
 {
     protected AbstractWebsiteLocalizationProvider $websiteLocalizationProvider;
 
