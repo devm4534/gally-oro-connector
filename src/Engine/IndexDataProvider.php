@@ -106,8 +106,12 @@ class IndexDataProvider extends BaseIndexDataProvider
      *
      * @return array Structured and cleared data ready to be saved
      */
-    private function prepareIndexData(string $entityClass, array $indexData, array $entityConfig, array $context): array
-    {
+    private function prepareIndexData(
+        string $entityClass,
+        array $indexData,
+        array $entityConfig,
+        array $context
+    ): array {
         $preparedIndexData = [];
         $nodeIds = [];
 
@@ -118,16 +122,18 @@ class IndexDataProvider extends BaseIndexDataProvider
         $defaultPriceList = $this->getDefaultPriceListForWebsite($website);
         $optionValues = $this->prepareOptionValues($entityClass, $indexData, $localization);
 
-        // Todo brand / variant
-
         foreach ($indexData as $entityId => $fieldsValues) {
             $categories = [];
             $prices = [];
             $visibilityCustomer = [];
+            if (isset($fieldsValues['brand_LOCALIZATION_ID'])) {
+                $fieldsValues['brand_name'] = $fieldsValues['brand_LOCALIZATION_ID'];
+                unset($fieldsValues['brand_LOCALIZATION_ID']);
+            }
 
             foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
+                $singleValueFieldName = $this->cleanFieldName((string) $fieldName);
                 foreach ($this->toArray($values) as $value) {
-                    $singleValueFieldName = $this->cleanFieldName($fieldName);
                     $value = $value['value'];
                     $placeholders = [];
 
@@ -212,7 +218,15 @@ class IndexDataProvider extends BaseIndexDataProvider
                     'qty' => $preparedIndexData[$entityId]['inv_qty'] ?? 0,
                 ];
                 unset($preparedIndexData[$entityId]['inv_status']);
-                unset($preparedIndexData[$entityId]['inv_qty']);
+                unset($preparedIndexData[$entityId]['inv_qty']); // todo remove if not set
+
+                if (isset($preparedIndexData[$entityId]['brand'])) {
+                    $preparedIndexData[$entityId]['brand'] = [[
+                        'value' => $preparedIndexData[$entityId]['brand'],
+                        'label' => $preparedIndexData[$entityId]['brand_name'],
+                    ]];
+                }
+                unset($preparedIndexData[$entityId]['brand_name']);
             }
 
             if (!empty($visibilityCustomer)) {
@@ -263,8 +277,11 @@ class IndexDataProvider extends BaseIndexDataProvider
         }
     }
 
-    private function prepareOptionValues(string $entityClass, array $indexData, Localization $localization): array
-    {
+    private function prepareOptionValues(
+        string $entityClass,
+        array $indexData,
+        Localization $localization
+    ): array {
         $entityConfig = $this->mappingProvider->getEntityConfig($entityClass);
         $selectAttributes = [];
 
@@ -312,10 +329,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         return $translatedOptionsByField;
     }
 
-    /**
-     * @return array
-     */
-    private function toArray($value)
+    private function toArray($value): array
     {
         if (\is_array($value) && !\array_key_exists('value', $value)) {
             return $value;

@@ -36,10 +36,12 @@ class SourceFieldProvider implements ProviderInterface
     private array $localizedCatalogs = [];
 
     /** @var string[] */
+    // todo conf ??
     private array $fieldToSkip = [
-        'visibility_customer', // Field managed manually @see src/Resources/config/oro/website_search.yml
+        'visibility_customer.CUSTOMER_ID', // Field managed manually @see src/Resources/config/oro/website_search.yml
         'inv_status', // Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
         'inv_qty', // Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
+        'brand_LOCALIZATION_ID', // Brand field is managed as a select
     ];
 
     public function __construct(
@@ -76,10 +78,11 @@ class SourceFieldProvider implements ProviderInterface
             $entityConfig = $this->mappingProvider->getEntityConfig($entityClass);
 
             foreach ($entityConfig['fields'] as $fieldData) {
-                $fieldName = $this->cleanFieldName($fieldData['name']);
-                if (\in_array($fieldName, $this->fieldToSkip, true)) {
+                if (\in_array($fieldData['name'], $this->fieldToSkip, true)) {
                     continue;
                 }
+
+                $fieldName = $this->cleanFieldName($fieldData['name']);
 
                 try {
                     $fieldConfig = $this->configProvider->getConfig($entityClass, $fieldName);
@@ -135,6 +138,7 @@ class SourceFieldProvider implements ProviderInterface
     private function getGallyType(string $fieldName, string $fieldType): string
     {
         return match (true) {
+            'brand' === $fieldName => SourceField::TYPE_SELECT,
             str_ends_with($fieldName, '_enum') => SourceField::TYPE_SELECT,
             str_starts_with($fieldName, 'image_') => SourceField::TYPE_IMAGE,
             str_starts_with($fieldName, 'is_') => SourceField::TYPE_BOOLEAN,
