@@ -1,11 +1,19 @@
 parameters:
     gally_config.entity_mapping:
         contentnode: 'category'
+    gally_config.attribute_mapping:
+        names: name
+        descriptions: description
     gally_config.attribute_type_mapping:
-        !php/const Oro\Bundle\SearchBundle\Query\Query::TYPE_TEXT: !php/const \Gally\Sdk\Entity\SourceField::TYPE_TEXT
-        !php/const Oro\Bundle\SearchBundle\Query\Query::TYPE_DECIMAL: !php/const \Gally\Sdk\Entity\SourceField::TYPE_FLOAT
-        !php/const Oro\Bundle\SearchBundle\Query\Query::TYPE_INTEGER: !php/const \Gally\Sdk\Entity\SourceField::TYPE_INT
-        !php/const Oro\Bundle\SearchBundle\Query\Query::TYPE_DATETIME: !php/const \Gally\Sdk\Entity\SourceField::TYPE_DATE
+        text: !php/const \Gally\Sdk\Entity\SourceField::TYPE_TEXT
+        string: !php/const \Gally\Sdk\Entity\SourceField::TYPE_TEXT
+        decimal: !php/const \Gally\Sdk\Entity\SourceField::TYPE_FLOAT
+        float: !php/const \Gally\Sdk\Entity\SourceField::TYPE_FLOAT
+        integer: !php/const \Gally\Sdk\Entity\SourceField::TYPE_INT
+        datetime: !php/const \Gally\Sdk\Entity\SourceField::TYPE_DATE
+        boolean: !php/const \Gally\Sdk\Entity\SourceField::TYPE_BOOLEAN
+        enum: !php/const \Gally\Sdk\Entity\SourceField::TYPE_SELECT
+        multiEnum: !php/const \Gally\Sdk\Entity\SourceField::TYPE_SELECT
 
 services:
     Gally\OroPlugin\Placeholder\PlaceholderDecorator:

@@ -57,12 +57,6 @@ class IndexDataProvider extends BaseIndexDataProvider
 {
     use ContextTrait;
 
-    // Todo get from conf
-    protected array $attributeCodeMapping = [
-        'names' => 'name',
-        'descriptions' => 'description',
-    ];
-
     public function __construct(
         private EventDispatcherInterface $eventDispatcher,
         private EntityAliasResolver $entityAliasResolver,
@@ -78,6 +72,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         private SearchMappingProvider $mappingProvider,
         private EntityManagerInterface $entityManager,
         private EnumTypeHelper $enumTypeHelper,
+        private array $attributeMapping,
     ) {
         parent::__construct($eventDispatcher, $entityAliasResolver, $placeholder, $htmlTagHelper, $placeholderHelper);
     }
@@ -178,6 +173,8 @@ class IndexDataProvider extends BaseIndexDataProvider
                             'customer_id' => $placeholders[CustomerIdPlaceholder::NAME],
                             'value' => $value,
                         ];
+                    } elseif (\in_array($fieldName, ['featured', 'is_variant', 'newArrival', 'is_upcoming', 'is_visible_by_default'], true)) { // todo detect boolean
+                        $preparedIndexData[$entityId][$fieldName] = (bool) $value;
                     } elseif (preg_match('/^(\w+)_enum\.(.+)$/', $fieldName, $matches)) {
                         [$fullMatch, $fieldName, $value] = $matches;
                         $preparedIndexData[$entityId][$fieldName][] = [
@@ -198,7 +195,7 @@ class IndexDataProvider extends BaseIndexDataProvider
 
             $preparedIndexData[$entityId] = $preparedIndexData[$entityId] ?? [];
 
-            $preparedIndexData[$entityId]['id'] = $entityId;
+            $preparedIndexData[$entityId]['id'] = (string) $entityId;
             if (\array_key_exists('image_product_medium', $preparedIndexData[$entityId])) {
                 $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_medium'];
             }
@@ -237,7 +234,7 @@ class IndexDataProvider extends BaseIndexDataProvider
             '_.'
         );
 
-        return $this->attributeCodeMapping[$fieldName] ?? $fieldName;
+        return $this->attributeMapping[$fieldName] ?? $fieldName;
     }
 
     private function addCategoryNames(array &$preparedIndexData, array $nodeIds, Localization $localization): void

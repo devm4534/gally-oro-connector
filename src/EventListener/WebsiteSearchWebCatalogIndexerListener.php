@@ -65,8 +65,8 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
         foreach ($nodes as $node) {
             if (str_starts_with($node->getMaterializedPath(), $root->getMaterializedPath())) {
                 $isRoot = $root->getId() == $node->getId();
-                $nodeId = "node_{$node->getId()}";
-                $parentId = $isRoot ? null : "node_{$node->getParentNode()->getId()}";
+                $nodeId = (string) $node->getId();
+                $parentId = $isRoot ? null : (string) $node->getParentNode()->getId();
                 $level = $isRoot ? 1 : ($node->getLevel() - $root->getLevel() + 1);
                 $path = str_replace(
                     '_',

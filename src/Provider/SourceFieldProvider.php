@@ -35,6 +35,13 @@ class SourceFieldProvider implements ProviderInterface
     /** @var LocalizedCatalog[] */
     private array $localizedCatalogs = [];
 
+    /** @var string[] */
+    private array $fieldToSkip = [
+        'visibility_customer', // Field managed manually @see src/Resources/config/oro/website_search.yml
+        'inv_status', // Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
+        'inv_qty', // Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
+    ];
+
     public function __construct(
         private SearchMappingProvider $mappingProvider,
         private EntityAliasResolver $entityAliasResolver,
@@ -44,6 +51,7 @@ class SourceFieldProvider implements ProviderInterface
         private TranslatorInterface $translator,
         private LocaleSettings $localeSettings,
         private array $entityCodeMapping,
+        private array $attributeMapping,
         private array $typeMapping,
     ) {
         foreach ($this->catalogProvider->provide() as $localizedCatalog) {
@@ -69,24 +77,22 @@ class SourceFieldProvider implements ProviderInterface
 
             foreach ($entityConfig['fields'] as $fieldData) {
                 $fieldName = $this->cleanFieldName($fieldData['name']);
-                $fieldType = $this->typeMapping[$fieldData['type']] ?? SourceField::TYPE_TEXT;
-
-                if ('visibility_customer' === $fieldName) {
-                    // Field managed manually
-                    // @see src/Resources/config/oro/website_search.yml
+                if (\in_array($fieldName, $this->fieldToSkip, true)) {
                     continue;
-                }
-                if (str_ends_with($fieldName, '_enum')) {
-                    $fieldName = preg_replace('/_enum$/', '', $fieldName);
-                    $fieldType = SourceField::TYPE_SELECT;
                 }
 
                 try {
                     $fieldConfig = $this->configProvider->getConfig($entityClass, $fieldName);
                     $labelKey = $fieldConfig->get('label');
                 } catch (RuntimeException) {
+                    $fieldConfig = null;
                     $labelKey = $fieldName;
                 }
+
+                $fieldType = $this->getGallyType(
+                    $fieldData['name'],
+                    $fieldConfig ? $fieldConfig->getId()->getFieldType() : $fieldData['type']
+                );
                 $defaultLabel = $this->translator->trans($labelKey, [], null, $this->getDefaultLocale());
 
                 if (!\array_key_exists($fieldData['type'], $this->typeMapping)) {
@@ -117,7 +123,23 @@ class SourceFieldProvider implements ProviderInterface
             $fieldName = $placeholder->replace($fieldName, [$placeholder->getPlaceholder() => null]);
         }
 
-        return trim($fieldName, '._-');
+        $fieldName = trim($fieldName, '._-');
+
+        if (str_ends_with($fieldName, '_enum')) {
+            $fieldName = preg_replace('/_enum$/', '', $fieldName);
+        }
+
+        return $this->attributeMapping[$fieldName] ?? $fieldName;
+    }
+
+    private function getGallyType(string $fieldName, string $fieldType): string
+    {
+        return match (true) {
+            str_ends_with($fieldName, '_enum') => SourceField::TYPE_SELECT,
+            str_starts_with($fieldName, 'image_') => SourceField::TYPE_IMAGE,
+            str_starts_with($fieldName, 'is_') => SourceField::TYPE_BOOLEAN,
+            default => $this->typeMapping[$fieldType] ?? SourceField::TYPE_TEXT,
+        };
     }
 
     private function getDefaultLocale(): string

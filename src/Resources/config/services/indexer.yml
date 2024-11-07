@@ -22,6 +22,7 @@ services:
             - '@translator'
             - '@oro_locale.settings'
             - '%gally_config.entity_mapping%'
+            - '%gally_config.attribute_mapping%'
             - '%gally_config.attribute_type_mapping%'
         tags:
             - { name: 'gally.dataprovider', entity: 'sourceField' }
@@ -76,6 +77,7 @@ services:
             - '@oro_website_search.provider.search_mapping'
             - '@doctrine.orm.entity_manager'
             - '@oro_entity_extend.enum_type_helper'
+            - '%gally_config.attribute_mapping%'
 
     Gally\OroPlugin\Engine\Indexer:
         arguments:
