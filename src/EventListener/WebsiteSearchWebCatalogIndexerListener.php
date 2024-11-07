@@ -1,4 +1,16 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\EventListener;
 
@@ -15,7 +27,7 @@ use Oro\Bundle\WebsiteSearchBundle\Event\IndexEntityEvent;
 use Oro\Bundle\WebsiteSearchBundle\Manager\WebsiteContextManager;
 
 /**
- * Add web catalog node related data to search index
+ * Add web catalog node related data to search index.
  */
 class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductIndexerListenerInterface
 {
@@ -53,13 +65,13 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
         foreach ($nodes as $node) {
             if (str_starts_with($node->getMaterializedPath(), $root->getMaterializedPath())) {
                 $isRoot = $root->getId() == $node->getId();
-                $nodeId =  "node_{$node->getId()}";
+                $nodeId = "node_{$node->getId()}";
                 $parentId = $isRoot ? null : "node_{$node->getParentNode()->getId()}";
                 $level = $isRoot ? 1 : ($node->getLevel() - $root->getLevel() + 1);
                 $path = str_replace(
                     '_',
                     '/',
-                    str_replace($root->getMaterializedPath(), $root->getId(), $node->getMaterializedPath())
+                    str_replace($root->getMaterializedPath(), (string) $root->getId(), $node->getMaterializedPath())
                 );
                 $name = $this->localizationHelper->getLocalizedValue($node->getTitles(), $localization)->getString();
 
@@ -72,6 +84,7 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
             }
         }
     }
+
     private function getWebsite(IndexEntityEvent $event): ?Website
     {
         $websiteId = $this->websiteContextManager->getWebsiteId($event->getContext());

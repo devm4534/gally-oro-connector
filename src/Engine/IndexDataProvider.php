@@ -1,11 +1,20 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\Engine;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\QueryBuilder;
-use Gally\OroPlugin\Provider\CatalogProvider;
-use Gally\OroPlugin\Provider\SourceFieldProvider;
 use Oro\Bundle\ConfigBundle\Config\ConfigManager;
 use Oro\Bundle\CustomerBundle\Placeholder\CustomerIdPlaceholder;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
@@ -16,7 +25,6 @@ use Oro\Bundle\EntityExtendBundle\Tools\ExtendHelper;
 use Oro\Bundle\FeatureToggleBundle\Checker\FeatureChecker;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
-use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\PricingBundle\Entity\CombinedPriceList;
 use Oro\Bundle\PricingBundle\Entity\PriceList;
 use Oro\Bundle\PricingBundle\Entity\Repository\CombinedPriceListRepository;
@@ -27,7 +35,6 @@ use Oro\Bundle\PricingBundle\Placeholder\UnitPlaceholder;
 use Oro\Bundle\PricingBundle\Provider\WebsiteCurrencyProvider;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
-use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
 use Oro\Bundle\WebCatalogBundle\Entity\ContentVariant;
 use Oro\Bundle\WebsiteBundle\Entity\Website;
@@ -40,12 +47,11 @@ use Oro\Bundle\WebsiteSearchBundle\Placeholder\AssignIdPlaceholder;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\LocalizationIdPlaceholder;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderInterface;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderValue;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class is responsible for triggering all events during indexation
- * and returning all collected and prepared for saving event data
+ * and returning all collected and prepared for saving event data.
  */
 class IndexDataProvider extends BaseIndexDataProvider
 {
@@ -62,7 +68,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         private EntityAliasResolver $entityAliasResolver,
         private PlaceholderInterface $placeholder,
         HtmlTagHelper $htmlTagHelper,
-        private PlaceholderHelper $placeholderHelper,
+        PlaceholderHelper $placeholderHelper,
         private DoctrineHelper $doctrineHelper,
         private LocalizationHelper $localizationHelper,
         private WebsiteCurrencyProvider $currencyProvider,
@@ -70,24 +76,20 @@ class IndexDataProvider extends BaseIndexDataProvider
         private ConfigManager $configManager,
         private FeatureChecker $featureChecker,
         private SearchMappingProvider $mappingProvider,
-        private CatalogProvider $catalogProvider,
-        private LocaleSettings $localeSettings,
         private EntityManagerInterface $entityManager,
         private EnumTypeHelper $enumTypeHelper,
-        private SourceFieldProvider $sourceFieldProvider,
     ) {
         parent::__construct($eventDispatcher, $entityAliasResolver, $placeholder, $htmlTagHelper, $placeholderHelper);
     }
 
     /**
-     * @param string $entityClass
+     * @param string   $entityClass
      * @param object[] $restrictedEntities
-     * @param array $context
-     * $context = [
-     *     'currentWebsiteId' int Current website id. Should not be passed manually. It is computed from 'websiteIds'
-     * ]
+     * @param array    $context
+     *                                     $context = [
+     *                                     'currentWebsiteId' int Current website id. Should not be passed manually. It is computed from 'websiteIds'
+     *                                     ]
      *
-     * @param array $entityConfig
      * @return array
      */
     public function getEntitiesData($entityClass, array $restrictedEntities, array $context, array $entityConfig)
@@ -98,18 +100,15 @@ class IndexDataProvider extends BaseIndexDataProvider
         $this->eventDispatcher->dispatch($indexEntityEvent, Event\IndexEntityEvent::NAME);
         $this->eventDispatcher->dispatch(
             $indexEntityEvent,
-            sprintf('%s.%s', Event\IndexEntityEvent::NAME, $entityAlias)
+            \sprintf('%s.%s', Event\IndexEntityEvent::NAME, $entityAlias)
         );
 
         return $this->prepareIndexData($entityClass, $indexEntityEvent->getEntitiesData(), $entityConfig, $context);
     }
 
     /**
-     * Adds field types according to entity config, applies placeholders
-     * @param string $entityClass
-     * @param array $indexData
-     * @param array $entityConfig
-     * @param array $context
+     * Adds field types according to entity config, applies placeholders.
+     *
      * @return array Structured and cleared data ready to be saved
      */
     private function prepareIndexData(string $entityClass, array $indexData, array $entityConfig, array $context): array
@@ -127,13 +126,11 @@ class IndexDataProvider extends BaseIndexDataProvider
         // Todo brand / variant
 
         foreach ($indexData as $entityId => $fieldsValues) {
-
             $categories = [];
             $prices = [];
             $visibilityCustomer = [];
 
             foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
-
                 foreach ($this->toArray($values) as $value) {
                     $singleValueFieldName = $this->cleanFieldName($fieldName);
                     $value = $value['value'];
@@ -144,7 +141,7 @@ class IndexDataProvider extends BaseIndexDataProvider
                         $value = $value->getValue();
                     }
 
-                    if (array_key_exists(LocalizationIdPlaceholder::NAME, $placeholders)) {
+                    if (\array_key_exists(LocalizationIdPlaceholder::NAME, $placeholders)) {
                         if ($localization->getId() != $placeholders[LocalizationIdPlaceholder::NAME]) {
                             continue;
                         }
@@ -179,7 +176,7 @@ class IndexDataProvider extends BaseIndexDataProvider
                     } elseif (str_starts_with($fieldName, 'visibility_customer.')) {
                         $visibilityCustomer[] = [
                             'customer_id' => $placeholders[CustomerIdPlaceholder::NAME],
-                            'value' => $value
+                            'value' => $value,
                         ];
                     } elseif (preg_match('/^(\w+)_enum\.(.+)$/', $fieldName, $matches)) {
                         [$fullMatch, $fieldName, $value] = $matches;
@@ -188,9 +185,9 @@ class IndexDataProvider extends BaseIndexDataProvider
                             'value' => $value,
                         ];
                         $blop = 'toto';
-                        // manage value / label
+                    // manage value / label
                     } elseif (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
-                        if ($value === null || $value === '' || $value === []) {
+                        if (null === $value || '' === $value || [] === $value) {
                             continue;
                         }
                         $singleValueFieldName = $this->placeholder->replace($singleValueFieldName, $placeholders);
@@ -202,7 +199,7 @@ class IndexDataProvider extends BaseIndexDataProvider
             $preparedIndexData[$entityId] = $preparedIndexData[$entityId] ?? [];
 
             $preparedIndexData[$entityId]['id'] = $entityId;
-            if (array_key_exists('image_product_medium', $preparedIndexData[$entityId])) {
+            if (\array_key_exists('image_product_medium', $preparedIndexData[$entityId])) {
                 $preparedIndexData[$entityId]['image'] = $preparedIndexData[$entityId]['image_product_medium'];
             }
 
@@ -210,11 +207,11 @@ class IndexDataProvider extends BaseIndexDataProvider
                 $preparedIndexData[$entityId]['category'] = array_values($categories);
             }
 
-            if ($entityClass == Product::class) {
+            if (Product::class == $entityClass) {
                 $preparedIndexData[$entityId]['price'] = $prices;
                 $stockStatus = $preparedIndexData[$entityId]['inv_status'] ?? Product::INVENTORY_STATUS_OUT_OF_STOCK;
                 $preparedIndexData[$entityId]['stock'] = [
-                    'status' => $stockStatus == Product::INVENTORY_STATUS_IN_STOCK,
+                    'status' => Product::INVENTORY_STATUS_IN_STOCK == $stockStatus,
                     'qty' => $preparedIndexData[$entityId]['inv_qty'] ?? 0,
                 ];
                 unset($preparedIndexData[$entityId]['inv_status']);
@@ -253,14 +250,14 @@ class IndexDataProvider extends BaseIndexDataProvider
             $name = $this->localizationHelper->getLocalizedValue($node->getNode()->getTitles(), $localization)->getString();
             $nodeNames[$node->getId()] = [
                 'id' => 'node_' . $node->getNode()->getId(),
-                'name' => $name
+                'name' => $name,
             ];
         }
 
         foreach ($preparedIndexData as $entityId => $entityData) {
             $newCategoryData = [];
             foreach ($entityData['category'] ?? [] as $index => $categoryData) {
-                if (array_key_exists($categoryData['id'], $nodeNames)) {
+                if (\array_key_exists($categoryData['id'], $nodeNames)) {
                     $newCategoryData[] = $nodeNames[$categoryData['id']];
                 }
             }
@@ -319,12 +316,11 @@ class IndexDataProvider extends BaseIndexDataProvider
     }
 
     /**
-     * @param mixed $value
      * @return array
      */
     private function toArray($value)
     {
-        if (is_array($value) && !array_key_exists('value', $value)) {
+        if (\is_array($value) && !\array_key_exists('value', $value)) {
             return $value;
         }
 
@@ -338,12 +334,12 @@ class IndexDataProvider extends BaseIndexDataProvider
         if ($isCombinedPriceListEnable) {
             /** @var CombinedPriceListRepository $combinedPriceListRepository */
             $combinedPriceListRepository = $this->doctrineHelper->getEntityRepositoryForClass(CombinedPriceList::class);
+
             return $combinedPriceListRepository->getPriceListByWebsite($website, true);
-        } else {
-            $priceListId = $this->configManager->get('oro_pricing.default_price_list', false, false, $website->getId());
-            if ($priceListId) {
-                return $this->doctrineHelper->getEntityRepositoryForClass(PriceList::class)->find($priceListId);
-            }
+        }
+        $priceListId = $this->configManager->get('oro_pricing.default_price_list', false, false, $website->getId());
+        if ($priceListId) {
+            return $this->doctrineHelper->getEntityRepositoryForClass(PriceList::class)->find($priceListId);
         }
 
         return null;

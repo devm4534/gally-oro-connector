@@ -1,14 +1,20 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\Registry;
 
-use Gally\Sdk\Entity\SourceField;
 use Gally\Sdk\GraphQl\Response;
-use Gally\Sdk\Service\SearchManager;
-use Oro\Bundle\DataGridBundle\Datagrid\Common\DatagridConfiguration;
-use Oro\Bundle\DataGridBundle\Datagrid\Common\MetadataObject;
-use Oro\Bundle\DataGridBundle\Datasource\DatasourceInterface;
-use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
 
 /**
  * Search registry.

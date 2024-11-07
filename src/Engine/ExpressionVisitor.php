@@ -1,4 +1,16 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\Engine;
 
@@ -22,7 +34,8 @@ class ExpressionVisitor extends BaseExpressionVisitor
         }
 
         $type = CompositeExpression::TYPE_AND === $expr->getType() ? '_must' : '_should';
-        return ['boolFilter' => [$type  => array_values(array_filter($filters))]];
+
+        return ['boolFilter' => [$type => array_values(array_filter($filters))]];
     }
 
     public function walkComparison(Comparison $comparison): ?array
@@ -36,17 +49,19 @@ class ExpressionVisitor extends BaseExpressionVisitor
             // todo add EXISTS
         };
 
-        if ($field === 'all_text') {
+        if ('all_text' === $field) {
             $this->searchQuery = $value;
+
             return null;
         }
 
-        if ($field === 'inv_status') {
+        if ('inv_status' === $field) {
             return null;
         }
 
-        if ($field === 'category_path') {
+        if ('category_path' === $field) {
             $this->currentCategoryId = 'node_' . basename(str_replace('_', '/', $value));
+
             return null;
         }
 

@@ -1,4 +1,14 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
 
 declare(strict_types=1);
 
@@ -18,7 +28,7 @@ class StructureSync extends Command
     /** @var string */
     protected static $defaultName = 'gally:structure-sync';
 
-    /** @var iterable<ProviderInterface> $providers*/
+    /** @var ProviderInterface[] */
     private array $providers;
     private array $syncMethod = [
         'catalog' => 'syncAllLocalizedCatalogs',
@@ -47,7 +57,7 @@ class StructureSync extends Command
             $message = "<comment>Sync $entity</comment>";
             $time = microtime(true);
             $output->writeln("$message ...");
-            $this->synchonizer->$method($this->providers[$entity]->provide());
+            $this->synchonizer->{$method}($this->providers[$entity]->provide());
             $time = number_format(microtime(true) - $time, 2);
             $output->writeln("\033[1A$message <info>✔</info> ($time)s");
         }

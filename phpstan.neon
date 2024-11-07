@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    reportUnmatchedIgnoredErrors: false
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - src
+
+    excludePaths:
+        # Makes PHPStan crash
+        - 'src/DependencyInjection/Configuration.php'
+
+        # Test dependencies
+        - 'tests/Application/**/**.php'
+

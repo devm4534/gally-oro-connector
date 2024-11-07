@@ -1,4 +1,14 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
 
 declare(strict_types=1);
 
@@ -45,14 +55,14 @@ class SourceFieldOptionProvider implements ProviderInterface
             }
         }
     }
+
     /**
-     * @return iterable<Catalog>
+     * @return iterable<SourceFieldOption>
      */
     public function provide(): iterable
     {
         foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
-
-            if ($entityClass === SavedSearch::class) {
+            if (SavedSearch::class === $entityClass) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
                 continue;
             }
@@ -93,14 +103,14 @@ class SourceFieldOptionProvider implements ProviderInterface
     }
 
     /**
-     * @return Label[]
+     * @return array<string, Label[]>
      */
     private function getLabels(string $objectClass): array
     {
         $translationRepo = $this->entityManager->getRepository(EnumValueTranslation::class);
         $translations = $translationRepo->findBy([
             'objectClass' => $objectClass,
-            'field' => 'name'
+            'field' => 'name',
         ]);
         $labels = [];
 

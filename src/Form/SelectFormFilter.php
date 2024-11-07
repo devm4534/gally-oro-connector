@@ -1,9 +1,20 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\Form;
 
 use Oro\Bundle\FilterBundle\Form\Type\Filter\ChoiceFilterType;
-use Oro\Bundle\FilterBundle\Form\Type\Filter\FilterType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\Options;
@@ -14,7 +25,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class SelectFormFilter extends AbstractType
 {
-    const NAME = 'gally_search_type_select_filter';
+    public const NAME = 'gally_search_type_select_filter';
 
     /**
      * {@inheritdoc}
@@ -29,18 +40,18 @@ class SelectFormFilter extends AbstractType
             }
         );
 
-//        $resolver->setNormalizer( //todo might be removed
-//            'class',
-//            function (Options $options, $value) {
-//                    return null;
-//            }
-//        );
+        //        $resolver->setNormalizer( //todo might be removed
+        //            'class',
+        //            function (Options $options, $value) {
+        //                    return null;
+        //            }
+        //        );
 
         $resolver->setNormalizer(
             'field_options',
             function (Options $options, $value) {
                 $value['choices'] = $options['gally_options'];
-                $value['choice_loader'] = new \Gally\OroPlugin\Form\ChoiceLoader();
+                $value['choice_loader'] = new ChoiceLoader();
                 $value['choice_value'] = function ($value = null, $data = null, $toto = null) {
                     return $value;
                 };

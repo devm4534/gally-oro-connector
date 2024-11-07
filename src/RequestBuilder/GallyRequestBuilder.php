@@ -1,4 +1,16 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\RequestBuilder;
 
@@ -39,16 +51,17 @@ class GallyRequestBuilder
     {
         $from = $query->getFrom();
 
-        return count($from) === 1 && str_starts_with($from[0], 'oro_product');
+        return 1 === \count($from) && str_starts_with($from[0], 'oro_product');
     }
 
     private function getCurrentLocalizedCatalog(): LocalizedCatalog
     {
         // Todo find context
         $catalog = new Catalog('website_1', 'Test');
+
         return new LocalizedCatalog(
             $catalog,
-//            'website_1_en_US',
+            //            'website_1_en_US',
             'website_1_fr_CA',
             'Blop',
             'en_US',
@@ -62,12 +75,13 @@ class GallyRequestBuilder
         $fields = $query->getSelect();
         $selectedFields = empty($fields) ? [] : ['id'];
         foreach ($fields as $field) {
-            list($type, $name) = Criteria::explodeFieldTypeName($field);
-            if ($name === 'names') {
+            [$type, $name] = Criteria::explodeFieldTypeName($field);
+            if ('names' === $name) {
                 $name = 'name';
             }
             $selectedFields[] = $name;
         }
+
         return $selectedFields;
     }
 
@@ -77,24 +91,14 @@ class GallyRequestBuilder
     private function getPaginationInfo(Query $query): array
     {
         $from = (int) $query->getCriteria()->getFirstResult();
-
-        $pageSize = $query->getCriteria()->getMaxResults();
-        if (null !== $pageSize && $pageSize) {
-            $pageSize = (int) $pageSize;
-            // manual reducing of window size
-            if ($from + $pageSize > Query::INFINITY) {
-                $pageSize = Query::INFINITY - $from;
-            }
-        }
-
-        // Todo check pagination calculation
-        $currentPage = ceil($from / $pageSize) + 1;
+        $pageSize = (int) $query->getCriteria()->getMaxResults() ?: 25;
+        $currentPage = (int) ceil($from / $pageSize) + 1;
 
         return [$currentPage, $pageSize];
     }
 
     /**
-     * @return array{0: string, 1: string}
+     * @return array{0: ?string, 1: ?string}
      */
     private function getSortInfo(Query $query): array
     {
@@ -105,13 +109,13 @@ class GallyRequestBuilder
             $order = array_key_first($orders);
             [$type, $field] = Criteria::explodeFieldTypeName($order);
 
-            if ($field == 'category_sort_order' || str_starts_with($field, 'assigned_to_sort_order.')) {
+            if ('category_sort_order' == $field || str_starts_with($field, 'assigned_to_sort_order.')) {
                 // todo manage this globally
                 $field = 'category__position';
                 $field = '_score';
             }
 
-            return [$field, $orders[$order] === 'ASC' ? Request::SORT_DIRECTION_ASC : Request::SORT_DIRECTION_DESC];
+            return [$field, 'ASC' === $orders[$order] ? Request::SORT_DIRECTION_ASC : Request::SORT_DIRECTION_DESC];
         }
 
         return [null, null];

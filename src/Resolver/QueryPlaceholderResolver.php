@@ -1,4 +1,16 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\Resolver;
 
@@ -14,7 +26,7 @@ use Oro\Bundle\WebsiteSearchBundle\Resolver\QueryPlaceholderResolverInterface;
 class QueryPlaceholderResolver implements QueryPlaceholderResolverInterface
 {
     public function __construct(
-        private PlaceholderInterface $placeholder
+        private PlaceholderInterface $placeholder,
     ) {
     }
 
@@ -46,7 +58,6 @@ class QueryPlaceholderResolver implements QueryPlaceholderResolverInterface
     }
 
     /**
-     * @param Query $query
      * @return Query
      */
     private function replaceInFrom(Query $query)
@@ -97,7 +108,7 @@ class QueryPlaceholderResolver implements QueryPlaceholderResolverInterface
             $newAggregations[$name] = [
                 'field' => $this->placeholder->replaceDefault($item['field']),
                 'function' => $item['function'],
-                'parameters' => $item['parameters']
+                'parameters' => $item['parameters'],
             ];
         }
         $query->setAggregations($newAggregations);

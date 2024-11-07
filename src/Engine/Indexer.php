@@ -1,4 +1,14 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
 
 declare(strict_types=1);
 
@@ -9,20 +19,15 @@ use Gally\OroPlugin\Provider\SourceFieldProvider;
 use Gally\Sdk\Entity\Index;
 use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Service\IndexOperation;
-use Oro\Bundle\BatchBundle\ORM\Query\BufferedIdentityQueryResultIterator;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
-use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;
-use Oro\Bundle\WebCatalogBundle\Entity\WebCatalog;
 use Oro\Bundle\WebCatalogBundle\Provider\WebCatalogProvider;
-use Oro\Bundle\WebsiteBundle\Entity\Website;
 use Oro\Bundle\WebsiteBundle\Provider\AbstractWebsiteLocalizationProvider;
 use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 use Oro\Bundle\WebsiteSearchBundle\Engine\AbstractIndexer;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexerInputValidator;
-use Oro\Bundle\WebsiteSearchBundle\Event\AfterReindexEvent;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderInterface;
 use Oro\Bundle\WebsiteSearchBundle\Resolver\EntityDependenciesResolverInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -31,7 +36,7 @@ class Indexer extends AbstractIndexer
 {
     public const CONTEXT_LOCALIZATION = 'localization';
 
-    /** @var LocalizedCatalog[] */
+    /** @var LocalizedCatalog[][] */
     private array $localizedCatalogByWebsite;
 
     /** @var Index[] */
@@ -47,7 +52,6 @@ class Indexer extends AbstractIndexer
         EventDispatcherInterface $eventDispatcher,
         PlaceholderInterface $regexPlaceholder,
         private AbstractWebsiteLocalizationProvider $websiteLocalizationProvider,
-        private WebCatalogProvider $webCatalogProvider,
         private CatalogProvider $catalogProvider,
         private SourceFieldProvider $sourceFieldProvider,
         private IndexOperation $indexOperation,
@@ -66,7 +70,7 @@ class Indexer extends AbstractIndexer
 
     protected function reindexEntityClass($entityClass, array $context)
     {
-        if ($entityClass === SavedSearch::class) {
+        if (SavedSearch::class === $entityClass) {
             // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
             return 0;
         }
@@ -77,7 +81,7 @@ class Indexer extends AbstractIndexer
         // Initialize indices list.
         $this->indicesByLocale = [];
         foreach ($this->getLocalizedCatalogByWebsite($websiteId) as $localizedCatalog) {
-            if (empty($contextEntityIds)) {
+            if (empty($contextEntityIds)) { // Manage partial reindex todo
                 $index = $this->indexOperation->createIndex($metadata, $localizedCatalog);
             } else {
                 $index = $this->indexOperation->getIndexByName($metadata, $localizedCatalog);
@@ -119,7 +123,8 @@ class Indexer extends AbstractIndexer
         }
 
         $catalogCode = $this->catalogProvider->getCatalogCodeFromWebsiteId($websiteId);
-        return $this->localizedCatalogByWebsite[$catalogCode]; //todo if undefined ??
+
+        return $this->localizedCatalogByWebsite[$catalogCode]; // todo if undefined ??
     }
 
     public function delete($entity, array $context = [])

@@ -1,4 +1,14 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
 
 declare(strict_types=1);
 
@@ -43,13 +53,13 @@ class SourceFieldProvider implements ProviderInterface
 
     /**
      * @return iterable<SourceField>
+     *
      * @see \Oro\Bundle\ProductBundle\EventListener\WebsiteSearchMappingListener:54
      */
     public function provide(): iterable
     {
         foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
-
-            if ($entityClass === SavedSearch::class) {
+            if (SavedSearch::class === $entityClass) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
                 continue;
             }
@@ -61,11 +71,12 @@ class SourceFieldProvider implements ProviderInterface
                 $fieldName = $this->cleanFieldName($fieldData['name']);
                 $fieldType = $this->typeMapping[$fieldData['type']] ?? SourceField::TYPE_TEXT;
 
-                if ($fieldName === 'visibility_customer') {
+                if ('visibility_customer' === $fieldName) {
                     // Field managed manually
                     // @see src/Resources/config/oro/website_search.yml
                     continue;
-                } elseif (str_ends_with($fieldName, '_enum')) {
+                }
+                if (str_ends_with($fieldName, '_enum')) {
                     $fieldName = preg_replace('/_enum$/', '', $fieldName);
                     $fieldType = SourceField::TYPE_SELECT;
                 }
@@ -76,17 +87,10 @@ class SourceFieldProvider implements ProviderInterface
                 } catch (RuntimeException) {
                     $labelKey = $fieldName;
                 }
-                $defaultLabel = $this->translator->trans($labelKey, [], null,  $this->getDefaultLocale());
+                $defaultLabel = $this->translator->trans($labelKey, [], null, $this->getDefaultLocale());
 
-                if (!array_key_exists($fieldData['type'], $this->typeMapping)) {
-                    throw new \LogicException(
-                        sprintf(
-                            'Type %s not managed for field %s of entity %s.',
-                            $fieldData['type'],
-                            $fieldName,
-                            $entityClass
-                        )
-                    );
+                if (!\array_key_exists($fieldData['type'], $this->typeMapping)) {
+                    throw new \LogicException(\sprintf('Type %s not managed for field %s of entity %s.', $fieldData['type'], $fieldName, $entityClass));
                 }
 
                 yield new SourceField(
@@ -103,6 +107,7 @@ class SourceFieldProvider implements ProviderInterface
     public function getMetadataFromEntityClass(string $entityClass): Metadata
     {
         $entityCode = $this->entityAliasResolver->getAlias($entityClass);
+
         return new Metadata($this->entityCodeMapping[$entityCode] ?? $entityCode);
     }
 

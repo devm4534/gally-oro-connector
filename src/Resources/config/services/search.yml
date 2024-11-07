@@ -31,17 +31,10 @@ services:
         tags:
             - { name: 'oro_website_search.engine', engine_name: 'gally' }
 
-    Gally\OroPlugin\Extension\GallyDataBeforeGridExtension:
+    Gally\OroPlugin\Extension\GallyDataGridExtension:
         arguments:
             - '@Gally\Sdk\Service\SearchManager'
             - '@Gally\OroPlugin\Registry\SearchRegistry'
             - '@oro_entity_extend.enum_type_helper'
-        tags:
-            - { name: oro_datagrid.extension }
-
-    Gally\OroPlugin\Extension\GallyDataAfterGridExtension:
-        arguments:
-            - '@Gally\Sdk\Service\SearchManager'
-            - '@Gally\OroPlugin\Registry\SearchRegistry'
         tags:
             - { name: oro_datagrid.extension }

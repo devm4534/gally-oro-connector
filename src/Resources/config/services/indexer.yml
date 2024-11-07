@@ -74,11 +74,8 @@ services:
             - '@oro_config.manager'
             - '@oro_featuretoggle.checker.feature_checker'
             - '@oro_website_search.provider.search_mapping'
-            - '@Gally\OroPlugin\Provider\CatalogProvider'
-            - '@oro_locale.settings'
             - '@doctrine.orm.entity_manager'
             - '@oro_entity_extend.enum_type_helper'
-            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
 
     Gally\OroPlugin\Engine\Indexer:
         arguments:
@@ -91,7 +88,6 @@ services:
             - '@event_dispatcher'
             - '@oro_website_search.regex_placeholder_decorator'
             - '@oro_website.provider.website_localization'
-            - '@oro_web_catalog.web_catalog_provider'
             - '@Gally\OroPlugin\Provider\CatalogProvider'
             - '@Gally\OroPlugin\Provider\SourceFieldProvider'
             - '@Gally\Sdk\Service\IndexOperation'
