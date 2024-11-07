@@ -95,7 +95,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         $this->eventDispatcher->dispatch($indexEntityEvent, Event\IndexEntityEvent::NAME);
         $this->eventDispatcher->dispatch(
             $indexEntityEvent,
-            \sprintf('%s.%s', Event\IndexEntityEvent::NAME, $entityAlias)
+            sprintf('%s.%s', Event\IndexEntityEvent::NAME, $entityAlias)
         );
 
         return $this->prepareIndexData($entityClass, $indexEntityEvent->getEntitiesData(), $entityConfig, $context);

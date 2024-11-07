@@ -61,6 +61,12 @@ services:
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
 
+    Gally\OroPlugin\EventListener\WebsiteSearchVariantDataIndexerListener:
+        arguments:
+            - '@doctrine'
+        tags:
+            - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
+
     Gally\OroPlugin\Engine\IndexDataProvider:
         arguments:
             - '@event_dispatcher'
