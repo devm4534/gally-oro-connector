@@ -59,9 +59,14 @@ class SearchEngine extends AbstractEngine
 
         $results = [];
         foreach ($response->getCollection() as $item) {
+            $item['id'] = (int) basename($item['id']);
+            $item['system_entity_id'] = $item['id']; // todo manage attributes
+            $item['names'] = $item['name'];
+            $item['descriptions'] = $item['description'] ?? '';
+
             $results[] = new Item(
                 'product', // Todo manage other entity
-                basename($item['id']),
+                $item['id'],
                 $item['url'] ?? null,
                 $this->mapper->mapSelectedData($query, $item),
                 $this->mappingProvider->getEntityConfig('product')

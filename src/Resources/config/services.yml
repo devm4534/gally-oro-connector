@@ -2,6 +2,7 @@ parameters:
     gally_config.entity_mapping:
         contentnode: 'category'
     gally_config.attribute_mapping:
+        system_entity_id: id
         names: name
         descriptions: description
     gally_config.attribute_type_mapping:

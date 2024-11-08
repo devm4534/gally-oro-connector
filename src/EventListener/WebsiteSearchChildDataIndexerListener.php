@@ -26,7 +26,7 @@ use Oro\Bundle\WebsiteSearchBundle\Event\IndexEntityEvent;
 /**
  * Add child data to product data.
  */
-class WebsiteSearchVariantDataIndexerListener implements WebsiteSearchProductIndexerListenerInterface
+class WebsiteSearchChildDataIndexerListener implements WebsiteSearchProductIndexerListenerInterface
 {
     use ContextTrait;
 

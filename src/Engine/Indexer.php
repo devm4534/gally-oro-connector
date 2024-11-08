@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Engine;
 
-use Gally\OroPlugin\Provider\CatalogProvider;
-use Gally\OroPlugin\Provider\SourceFieldProvider;
+use Gally\OroPlugin\Indexer\Provider\CatalogProvider;
+use Gally\OroPlugin\Indexer\Provider\SourceFieldProvider;
 use Gally\Sdk\Entity\Index;
 use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Service\IndexOperation;

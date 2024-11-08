@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Provider;
+namespace Gally\OroPlugin\Indexer\Provider;
 
 use Gally\Sdk\Entity\Label;
 use Gally\Sdk\Entity\LocalizedCatalog;

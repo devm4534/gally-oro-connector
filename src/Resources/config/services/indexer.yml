@@ -4,7 +4,7 @@ services:
         arguments:
             - '@.inner'
 
-    Gally\OroPlugin\Provider\CatalogProvider:
+    Gally\OroPlugin\Indexer\Provider\CatalogProvider:
         arguments:
             - '@doctrine.orm.entity_manager'
             - '@oro_website.provider.website_localization'
@@ -12,12 +12,12 @@ services:
         tags:
             - { name: 'gally.dataprovider', entity: 'catalog' }
 
-    Gally\OroPlugin\Provider\SourceFieldProvider:
+    Gally\OroPlugin\Indexer\Provider\SourceFieldProvider:
         arguments:
             - '@oro_website_search.provider.search_mapping'
             - '@oro_entity.entity_alias_resolver'
             - '@oro_entity_config.provider.entity'
-            - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
             - '@oro_website_search.placeholder.registry'
             - '@translator'
             - '@oro_locale.settings'
@@ -27,14 +27,14 @@ services:
         tags:
             - { name: 'gally.dataprovider', entity: 'sourceField' }
 
-    Gally\OroPlugin\Provider\SourceFieldOptionProvider:
+    Gally\OroPlugin\Indexer\Provider\SourceFieldOptionProvider:
         arguments:
             - '@oro_website_search.provider.search_mapping'
-            - '@Gally\OroPlugin\Provider\CatalogProvider'
+            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
             - '@oro_locale.settings'
             - '@doctrine.orm.entity_manager'
             - '@oro_entity_extend.enum_type_helper'
-            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
+            - '@Gally\OroPlugin\Indexer\Provider\SourceFieldProvider'
         tags:
             - { name: 'gally.dataprovider', entity: 'sourceFieldOption' }
 
@@ -61,13 +61,54 @@ services:
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
 
-    Gally\OroPlugin\EventListener\WebsiteSearchVariantDataIndexerListener:
+    Gally\OroPlugin\EventListener\WebsiteSearchChildDataIndexerListener:
         arguments:
             - '@doctrine'
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
 
-    Gally\OroPlugin\Engine\IndexDataProvider:
+    Gally\OroPlugin\Indexer\Normalizer\BrandDataNormalizer:
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\Normalizer\PriceDataNormalizer:
+        arguments:
+            - '@oro_entity.doctrine_helper'
+            - '@oro_config.manager'
+            - '@oro_featuretoggle.checker.feature_checker'
+            - '@oro_pricing.provider.website_currency_provider'
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\Normalizer\CategoryDataNormalizer:
+        arguments:
+            - '@oro_entity.doctrine_helper'
+            - '@oro_locale.helper.localization'
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\Normalizer\SelectDataNormalizer:
+        arguments:
+            - '@oro_entity.doctrine_helper'
+            - '@oro_entity_extend.enum_type_helper'
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\Normalizer\VisibilityDataNormalizer:
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\Normalizer\StockDataNormalizer:
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\Normalizer\BooleanDataNormalizer:
+        arguments:
+            - '@oro_entity_config.provider.entity'
+        tags:
+            - { name: gally.indexer_normalizer }
+
+    Gally\OroPlugin\Indexer\IndexDataProvider:
         arguments:
             - '@event_dispatcher'
             - '@oro_entity.entity_alias_resolver'
@@ -76,28 +117,26 @@ services:
             - '@oro_website_search.helper.placeholder_helper'
             - '@oro_entity.doctrine_helper'
             - '@oro_locale.helper.localization'
-            - '@oro_pricing.provider.website_currency_provider'
             - '@oro_website_search.manager.website_context_manager'
             - '@oro_config.manager'
-            - '@oro_featuretoggle.checker.feature_checker'
             - '@oro_website_search.provider.search_mapping'
             - '@doctrine.orm.entity_manager'
-            - '@oro_entity_extend.enum_type_helper'
             - '%gally_config.attribute_mapping%'
+            - !tagged_iterator { tag: 'gally.indexer_normalizer' }
 
     Gally\OroPlugin\Engine\Indexer:
         arguments:
             - '@oro_entity.doctrine_helper'
             - '@oro_website_search.provider.search_mapping'
             - '@oro_website_search.engine.entity_dependencies_resolver'
-            - '@Gally\OroPlugin\Engine\IndexDataProvider'
+            - '@Gally\OroPlugin\Indexer\IndexDataProvider'
             - '@oro_website_search.placeholder_decorator'
             - '@oro_website_search.indexer.input_validator'
             - '@event_dispatcher'
             - '@oro_website_search.regex_placeholder_decorator'
             - '@oro_website.provider.website_localization'
-            - '@Gally\OroPlugin\Provider\CatalogProvider'
-            - '@Gally\OroPlugin\Provider\SourceFieldProvider'
+            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
+            - '@Gally\OroPlugin\Indexer\Provider\SourceFieldProvider'
             - '@Gally\Sdk\Service\IndexOperation'
         #        calls:
         #            - ['setLogger', ['@logger']]

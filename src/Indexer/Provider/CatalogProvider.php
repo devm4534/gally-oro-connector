@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Provider;
+namespace Gally\OroPlugin\Indexer\Provider;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Gally\Sdk\Entity\Catalog;

@@ -12,10 +12,9 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Provider;
+namespace Gally\OroPlugin\Indexer\Provider;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Gally\Sdk\Entity\Catalog;
 use Gally\Sdk\Entity\Label;
 use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Entity\SourceField;
@@ -103,7 +102,7 @@ class SourceFieldOptionProvider implements ProviderInterface
     }
 
     /**
-     * @return array<string, Label[]>
+     * @return Label
      */
     private function getLabels(string $objectClass): array
     {

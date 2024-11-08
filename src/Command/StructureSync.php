@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Command;
 
-use Gally\OroPlugin\Provider\ProviderInterface;
+use Gally\OroPlugin\Indexer\Provider\ProviderInterface;
 use Gally\Sdk\Service\StructureSynchonizer;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
