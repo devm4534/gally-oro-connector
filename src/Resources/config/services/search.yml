@@ -26,6 +26,7 @@ services:
             - '@Gally\Sdk\Service\SearchManager'
             - '@Gally\OroPlugin\RequestBuilder\GallyRequestBuilder'
             - '@Gally\OroPlugin\Registry\SearchRegistry'
+            - '%gally_config.attribute_mapping%'
         calls:
             - ['setMapper', ['@oro_website_search.engine.mapper']]
         tags:
@@ -33,6 +34,7 @@ services:
 
     Gally\OroPlugin\Extension\GallyDataGridExtension:
         arguments:
+            - '@oro_website_search.engine.parameters'
             - '@Gally\Sdk\Service\SearchManager'
             - '@Gally\OroPlugin\Registry\SearchRegistry'
             - '@oro_entity_extend.enum_type_helper'

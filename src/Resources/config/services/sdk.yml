@@ -1,6 +1,7 @@
 services:
     Gally\Sdk\Client\Configuration:
         factory: ['\Gally\OroPlugin\Factory\ConfigurationFactory', 'create']
+        lazy: true
         arguments:
             - '@oro_website_search.engine.parameters'
 

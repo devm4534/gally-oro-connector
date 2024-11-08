@@ -14,12 +14,15 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Decorator;
 
+use Gally\OroPlugin\Engine\SearchEngine;
 use Oro\Bundle\ProductBundle\Search\ProductIndexAttributeProviderInterface;
+use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 
 class ProductIndexFieldsProvider implements ProductIndexAttributeProviderInterface
 {
     public function __construct(
         private ProductIndexAttributeProviderInterface $productIndexAttributeProvider,
+        private EngineParameters $engineParameters,
     ) {
     }
 
@@ -30,7 +33,7 @@ class ProductIndexFieldsProvider implements ProductIndexAttributeProviderInterfa
 
     public function isForceIndexed(string $field): bool
     {
-        // Todo check search engine
-        return true || $this->productIndexAttributeProvider->isForceIndexed($field);
+        return SearchEngine::ENGINE_NAME === $this->engineParameters->getEngineName()
+            || $this->productIndexAttributeProvider->isForceIndexed($field);
     }
 }

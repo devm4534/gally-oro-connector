@@ -49,6 +49,10 @@ class ElasticSearchEngineFeatureVoter implements VoterInterface
             return self::FEATURE_DISABLED;
         }
 
+        if ('saved_search' === $feature) { // Todo
+            return self::FEATURE_DISABLED;
+        }
+
         return VoterInterface::FEATURE_ABSTAIN;
     }
 }

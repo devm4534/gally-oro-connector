@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Extension;
 
+use Gally\OroPlugin\Engine\SearchEngine;
 use Gally\OroPlugin\Registry\SearchRegistry;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
@@ -25,6 +26,7 @@ use Oro\Bundle\DataGridBundle\Datasource\DatasourceInterface;
 use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
 use Oro\Bundle\EntityExtendBundle\Form\Util\EnumTypeHelper;
 use Oro\Bundle\ProductBundle\Entity\Product;
+use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 
 /**
  * Adapt data grid for result managed by Gally.
@@ -32,6 +34,7 @@ use Oro\Bundle\ProductBundle\Entity\Product;
 class GallyDataGridExtension extends AbstractExtension
 {
     public function __construct(
+        private EngineParameters $engineParameters,
         private SearchManager $searchManager,
         private SearchRegistry $registry,
         private EnumTypeHelper $enumTypeHelper,
@@ -40,8 +43,8 @@ class GallyDataGridExtension extends AbstractExtension
 
     public function isApplicable(DatagridConfiguration $config): bool
     {
-        // Todo it is gally search engine
-        return 'frontend-product-search-grid' === $config->getName();
+        return SearchEngine::ENGINE_NAME === $this->engineParameters->getEngineName()
+            && 'frontend-product-search-grid' === $config->getName();
     }
 
     public function visitDatasource(DatagridConfiguration $config, DatasourceInterface $datasource)

@@ -42,6 +42,7 @@ class SearchEngine extends AbstractEngine
         private SearchManager $searchManager,
         private GallyRequestBuilder $requestBuilder,
         private SearchRegistry $registry,
+        private array $attributeMapping,
     ) {
         parent::__construct($eventDispatcher, $queryPlaceholderResolver, $mappingProvider);
     }
@@ -60,9 +61,10 @@ class SearchEngine extends AbstractEngine
         $results = [];
         foreach ($response->getCollection() as $item) {
             $item['id'] = (int) basename($item['id']);
-            $item['system_entity_id'] = $item['id']; // todo manage attributes
-            $item['names'] = $item['name'];
-            $item['descriptions'] = $item['description'] ?? '';
+
+            foreach ($this->attributeMapping as $oroAttribute => $gallyAttribute) {
+                $item[$oroAttribute] = $item[$gallyAttribute] ?? null;
+            }
 
             $results[] = new Item(
                 'product', // Todo manage other entity

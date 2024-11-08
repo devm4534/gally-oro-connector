@@ -12,10 +12,11 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Engine;
+namespace Gally\OroPlugin\Search;
 
 use Doctrine\Common\Collections\Expr\Comparison;
 use Doctrine\Common\Collections\Expr\CompositeExpression;
+use Doctrine\Common\Collections\Expr\Expression;
 use Doctrine\Common\Collections\Expr\ExpressionVisitor as BaseExpressionVisitor;
 use Doctrine\Common\Collections\Expr\Value;
 use Gally\Sdk\GraphQl\Request;
@@ -26,16 +27,39 @@ class ExpressionVisitor extends BaseExpressionVisitor
     private ?string $searchQuery = null;
     private ?string $currentCategoryId = null;
 
-    public function walkCompositeExpression(CompositeExpression $expr): array
+    public function dispatch(Expression $expr, bool $isMainQuery = true)
     {
-        $filters = [];
-        foreach ($expr->getExpressionList() as $expression) {
-            $filters[] = $this->dispatch($expression);
+        // Use main query parameter to flatten main and expression.
+
+        switch (true) {
+            case $expr instanceof Comparison:
+                return $this->walkComparison($expr);
+            case $expr instanceof Value:
+                return $this->walkValue($expr);
+            case $expr instanceof CompositeExpression:
+                return $this->walkCompositeExpression($expr, $isMainQuery);
+            default:
+                throw new \RuntimeException('Unknown Expression ' . $expr::class);
+        }
+    }
+
+    public function walkCompositeExpression(CompositeExpression $expr, bool $isMainQuery = true): array
+    {
+        $type = '_must';
+        if (CompositeExpression::TYPE_AND !== $expr->getType()) {
+            $isMainQuery = false;
+            $type = '_should';
         }
 
-        $type = CompositeExpression::TYPE_AND === $expr->getType() ? '_must' : '_should';
+        $filters = [];
+        foreach ($expr->getExpressionList() as $expression) {
+            $filters[] = $this->dispatch($expression, $isMainQuery);
+        }
+        $filters = array_values(array_filter($filters));
 
-        return ['boolFilter' => [$type => array_values(array_filter($filters))]];
+        return $isMainQuery
+            ? array_merge(...$filters)
+            : ['boolFilter' => [$type => $filters]];
     }
 
     public function walkComparison(Comparison $comparison): ?array
@@ -56,13 +80,21 @@ class ExpressionVisitor extends BaseExpressionVisitor
         }
 
         if ('inv_status' === $field) {
-            return null;
+            $field = 'stock.status';
+            if (count($value) > 1) {
+                return null; // if we want in stock and out of sotck product, we do not need this filter.
+            }
+            $operator = Request::FILTER_OPERATOR_EQ;
+            $value = in_array(\Oro\Bundle\ProductBundle\Entity\Product::INVENTORY_STATUS_IN_STOCK, $value, true);
+            //            return null; //todo mange specificque code for code stock
+        } elseif (str_starts_with($field, 'visibility_customer.')) {
+            [$field, $value] = explode('.', $field);
         }
 
         if ('category_path' === $field) {
-//            $this->currentCategoryId = 'node_' . basename(str_replace('_', '/', $value)); // todo this is wrong, the current category should contain content node id !
+            //            $this->currentCategoryId = 'node_' . basename(str_replace('_', '/', $value)); // todo this is wrong, the current category should contain content node id !
 
-            return null;
+            //            return null;
         }
 
         if (str_starts_with($field, 'assigned_to')) {
@@ -73,7 +105,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
         }
 
         if (str_starts_with($field, 'category_path')) {
-            return null;
+            //            return null;
         }
 
         return [$field => [$operator => $value]];
