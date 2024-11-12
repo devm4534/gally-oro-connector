@@ -1,9 +1,23 @@
 services:
     Gally\OroPlugin\Registry\SearchRegistry: ~
 
-    Gally\OroPlugin\RequestBuilder\GallyRequestBuilder: ~
+    Gally\OroPlugin\Search\ContextProvider:
+        arguments:
+            - '@oro_website.manager'
+            - '@oro_locale.helper.localization'
+            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
+            - '@oro_web_catalog.request_web_content_variant_provider'
 
-    Gally\OroPlugin\Filter\SelectFilter:
+    Gally\OroPlugin\Search\ExpressionVisitor:
+        arguments:
+            - '%gally_config.attribute_mapping%'
+
+    Gally\OroPlugin\Search\GallyRequestBuilder:
+        arguments:
+            - '@Gally\OroPlugin\Search\ContextProvider'
+            - '@Gally\OroPlugin\Search\ExpressionVisitor'
+
+    Gally\OroPlugin\Search\Filter\SelectFilter:
         public: false
         arguments:
             - '@form.factory'
@@ -12,7 +26,7 @@ services:
         tags:
             - { name: oro_search.extension.search_filter.filter, type: gally-select }
 
-    Gally\OroPlugin\Form\SelectFormFilter:
+    Gally\OroPlugin\Search\Filter\Form\SelectFormFilter:
         tags:
             - { name: form.type, alias: gally_search_type_select_filter }
 
@@ -24,7 +38,7 @@ services:
             #            - '@oro_website_elastic_search.engine.index_agent'
             #            - '@oro_website_elastic_search.request_builder.registry'
             - '@Gally\Sdk\Service\SearchManager'
-            - '@Gally\OroPlugin\RequestBuilder\GallyRequestBuilder'
+            - '@Gally\OroPlugin\Search\GallyRequestBuilder'
             - '@Gally\OroPlugin\Registry\SearchRegistry'
             - '%gally_config.attribute_mapping%'
         calls:
@@ -32,7 +46,7 @@ services:
         tags:
             - { name: 'oro_website_search.engine', engine_name: 'gally' }
 
-    Gally\OroPlugin\Extension\GallyDataGridExtension:
+    Gally\OroPlugin\Search\Extension\GallyDataGridExtension:
         arguments:
             - '@oro_website_search.engine.parameters'
             - '@Gally\Sdk\Service\SearchManager'

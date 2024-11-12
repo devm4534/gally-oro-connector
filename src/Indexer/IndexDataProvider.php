@@ -135,9 +135,7 @@ class IndexDataProvider extends BaseIndexDataProvider
                         }
                     }
 
-                    if (str_starts_with($fieldName, 'category_path')) {
-                        // Todo
-                    } elseif (str_starts_with($fieldName, 'ordered_at_by')) {
+                    if (str_starts_with($fieldName, 'ordered_at_by')) {
                         // Todo
                     } elseif (!str_starts_with($fieldName, self::ALL_TEXT_PREFIX)) {
                         if (null === $value || '' === $value || [] === $value) {

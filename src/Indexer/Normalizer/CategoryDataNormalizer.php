@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Indexer\Normalizer;
 
+use Oro\Bundle\CatalogBundle\Placeholder\CategoryPathPlaceholder;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
@@ -98,15 +99,11 @@ class CategoryDataNormalizer extends AbstractNormalizer
             }
         }
 
-        $assignSortOrders = $fieldsValues['assigned_to_sort_order.ASSIGN_TYPE_ASSIGN_ID'] ?? [];
-        foreach ($assignSortOrders as $assignSortOrder) {
-            $value = $assignSortOrder['value'];
+        foreach ($fieldsValues['category_paths.CATEGORY_PATH'] ?? [] as $value) {
+            $value = $value['value'];
             if ($value instanceof PlaceholderValue) {
                 $placeholders = $value->getPlaceholders();
-                if ('variant' === $placeholders[AssignTypePlaceholder::NAME]) {
-                    $variantId = $placeholders[AssignIdPlaceholder::NAME];
-                    $categories[$variantId]['position'] = $value->getValue();
-                }
+                $preparedEntityData['category_paths'][] = $placeholders[CategoryPathPlaceholder::NAME];
             }
         }
 
@@ -124,5 +121,6 @@ class CategoryDataNormalizer extends AbstractNormalizer
         unset($fieldsValues['assigned_to.ASSIGN_TYPE_ASSIGN_ID']);
         unset($fieldsValues['manually_added_to.ASSIGN_TYPE_ASSIGN_ID']);
         unset($fieldsValues['assigned_to_sort_order.ASSIGN_TYPE_ASSIGN_ID']);
+        unset($fieldsValues['category_paths.CATEGORY_PATH']);
     }
 }

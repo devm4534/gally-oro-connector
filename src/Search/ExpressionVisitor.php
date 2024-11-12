@@ -20,17 +20,22 @@ use Doctrine\Common\Collections\Expr\Expression;
 use Doctrine\Common\Collections\Expr\ExpressionVisitor as BaseExpressionVisitor;
 use Doctrine\Common\Collections\Expr\Value;
 use Gally\Sdk\GraphQl\Request;
+use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Query\Criteria\Criteria;
+use Oro\Bundle\VisibilityBundle\Entity\VisibilityResolved\BaseVisibilityResolved;
 
 class ExpressionVisitor extends BaseExpressionVisitor
 {
+    public function __construct(
+        private array $attributeMapping,
+    ) {
+    }
+
     private ?string $searchQuery = null;
-    private ?string $currentCategoryId = null;
 
     public function dispatch(Expression $expr, bool $isMainQuery = true)
     {
         // Use main query parameter to flatten main and expression.
-
         switch (true) {
             case $expr instanceof Comparison:
                 return $this->walkComparison($expr);
@@ -65,13 +70,15 @@ class ExpressionVisitor extends BaseExpressionVisitor
     public function walkComparison(Comparison $comparison): ?array
     {
         [$type, $field] = Criteria::explodeFieldTypeName($comparison->getField());
+        $field = $this->attributeMapping[$field] ?? $field;
         $value = $this->dispatch($comparison->getValue());
         $operator = match ($comparison->getOperator()) {
-            'IN' => Request::FILTER_OPERATOR_IN,
-            'LIKE' => Request::FILTER_OPERATOR_MATCH,
+            'IN', 'NOT IN' => Request::FILTER_OPERATOR_IN,
+            'LIKE', 'NOT LIKE' => Request::FILTER_OPERATOR_MATCH,
+            'EXISTS', 'NOT EXISTS' => Request::FILTER_OPERATOR_EXISTS,
             default => Request::FILTER_OPERATOR_EQ,
-            // todo add EXISTS
         };
+        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT');
 
         if ('all_text' === $field) {
             $this->searchQuery = $value;
@@ -79,36 +86,44 @@ class ExpressionVisitor extends BaseExpressionVisitor
             return null;
         }
 
-        if ('inv_status' === $field) {
+        if ('id' === $field) {
+            $type = 'text';
+        } elseif ('inv_status' === $field) {
             $field = 'stock.status';
-            if (count($value) > 1) {
+            if (\count($value) > 1) {
                 return null; // if we want in stock and out of sotck product, we do not need this filter.
             }
             $operator = Request::FILTER_OPERATOR_EQ;
-            $value = in_array(\Oro\Bundle\ProductBundle\Entity\Product::INVENTORY_STATUS_IN_STOCK, $value, true);
-            //            return null; //todo mange specificque code for code stock
-        } elseif (str_starts_with($field, 'visibility_customer.')) {
+            $value = \in_array(Product::INVENTORY_STATUS_IN_STOCK, $value, true);
+        } elseif (str_starts_with($field, 'assigned_to.') || str_starts_with($field, 'manually_added_to.')) {
+            [$field, $variantId] = explode('.', $field);
+            [$_, $value] = explode('_', $variantId);
+        } elseif (str_starts_with($field, 'category_paths.')) {
             [$field, $value] = explode('.', $field);
+            $operator = Request::FILTER_OPERATOR_IN;
+        } elseif (str_starts_with($field, 'visibility_customer.')) {
+            [$field, $customerId] = explode('.', $field);
+            $type = 'text';
+            if (Request::FILTER_OPERATOR_EXISTS === $operator) {
+                $field = 'boolFilter';
+                $operator = '_must';
+                $value = [
+                    ['visible_for_customer' => [Request::FILTER_OPERATOR_EQ => $customerId]],
+                    ['hidden_for_customer' => [Request::FILTER_OPERATOR_EQ => $customerId]],
+                ];
+            } elseif (Request::FILTER_OPERATOR_EQ == $operator) {
+                $field = BaseVisibilityResolved::VISIBILITY_HIDDEN === $value
+                    ? 'hidden_for_customer'
+                    : 'visible_for_customer';
+                $value = $customerId;
+            }
         }
 
-        if ('category_path' === $field) {
-            //            $this->currentCategoryId = 'node_' . basename(str_replace('_', '/', $value)); // todo this is wrong, the current category should contain content node id !
+        $rule = [$field => [$operator => $this->enforceValueType($type, $value)]];
 
-            //            return null;
-        }
-
-        if (str_starts_with($field, 'assigned_to')) {
-            return null; // Todo manage this
-        }
-        if (str_starts_with($field, 'manually_added_to')) {
-            return null; // Todo manage this
-        }
-
-        if (str_starts_with($field, 'category_path')) {
-            //            return null;
-        }
-
-        return [$field => [$operator => $value]];
+        return $hasNegation
+            ? ['boolFilter' => ['_not' => [$rule]]]
+            : $rule;
     }
 
     public function walkValue(Value $value): mixed
@@ -116,13 +131,23 @@ class ExpressionVisitor extends BaseExpressionVisitor
         return $value->getValue();
     }
 
-    public function getCurrentCategoryId(): ?string
-    {
-        return $this->currentCategoryId;
-    }
-
     public function getSearchQuery(): ?string
     {
         return $this->searchQuery;
+    }
+
+    private function enforceValueType(string $type, mixed $value): mixed
+    {
+        if (\is_array($value)) {
+            return array_map(fn ($item) => $this->enforceValueType($type, $item), $value);
+        }
+
+        return match ($type) {
+            'int' => (int) $value,
+            'float' => (float) $value,
+            'bool' => (bool) $value,
+            'text' => (string) $value,
+            default => $value,
+        };
     }
 }

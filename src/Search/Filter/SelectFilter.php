@@ -12,9 +12,9 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Filter;
+namespace Gally\OroPlugin\Search\Filter;
 
-use Gally\OroPlugin\Form\SelectFormFilter;
+use Gally\OroPlugin\Search\Filter\Form\SelectFormFilter;
 use Oro\Bundle\FilterBundle\Datasource\FilterDatasourceAdapterInterface;
 use Oro\Bundle\FilterBundle\Filter\BaseMultiChoiceFilter;
 use Oro\Bundle\FilterBundle\Filter\FilterUtility;

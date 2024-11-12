@@ -70,15 +70,12 @@ class SourceFieldOptionProvider implements ProviderInterface
             $entityConfig = $this->mappingProvider->getEntityConfig($entityClass);
 
             foreach ($entityConfig['fields'] as $fieldData) {
-                $fieldName = $this->sourceFieldProvider->cleanFieldName($fieldData['name']);
-
-                if (!str_ends_with($fieldName, '_enum')) {
+                if (!str_ends_with($fieldData['name'], '_enum.ENUM_ID')) {
                     // Get options only for select attributes.
                     continue;
                 }
 
-                $fieldName = preg_replace('/_enum$/', '', $fieldName);
-
+                $fieldName = $this->sourceFieldProvider->cleanFieldName($fieldData['name']);
                 $sourceField = new SourceField($metadata, $fieldName, '', '', []);
                 $enumCode = $this->enumTypeHelper->getEnumCode(Product::class, $fieldName);
                 $enumValueClassName = ExtendHelper::buildEnumValueClassName($enumCode);

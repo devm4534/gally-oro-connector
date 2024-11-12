@@ -21,7 +21,8 @@ use Oro\Bundle\SearchBundle\Query\Query;
 class GallyRequestBuilder
 {
     public function __construct(
-        private ContextProvider $contextProvider
+        private ContextProvider $contextProvider,
+        private ExpressionVisitor $expressionVisitor,
     ) {
     }
 
@@ -120,13 +121,12 @@ class GallyRequestBuilder
      */
     private function getFilters(Query $query): array
     {
-        $visitor = new ExpressionVisitor();
         $filters = [];
 
         if ($expression = $query->getCriteria()->getWhereExpression()) {
-            $filters = $visitor->dispatch($expression);
+            $filters = $this->expressionVisitor->dispatch($expression);
         }
 
-        return [$visitor->getSearchQuery(), [$filters]];
+        return [$this->expressionVisitor->getSearchQuery(), [$filters]];
     }
 }

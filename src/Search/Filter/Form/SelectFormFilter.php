@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Form;
+namespace Gally\OroPlugin\Search\Filter\Form;
 
 use Oro\Bundle\FilterBundle\Form\Type\Filter\ChoiceFilterType;
 use Symfony\Component\Form\AbstractType;

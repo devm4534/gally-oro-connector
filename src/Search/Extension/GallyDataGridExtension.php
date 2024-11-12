@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Extension;
+namespace Gally\OroPlugin\Search\Extension;
 
 use Gally\OroPlugin\Engine\SearchEngine;
 use Gally\OroPlugin\Registry\SearchRegistry;
@@ -55,8 +55,6 @@ class GallyDataGridExtension extends AbstractExtension
 
     public function visitMetadata(DatagridConfiguration $config, MetadataObject $object)
     {
-        //        $config->offsetSetByPath('[filters][columns]', []);
-        $blop = 'toto';
         $this->addFiltersFromGallyResult($config, $object);
     }
 
@@ -76,7 +74,16 @@ class GallyDataGridExtension extends AbstractExtension
             $sorters[$attribute->getCode()] = $attribute;
             $config->offsetSetByPath(
                 '[sorters][columns][' . $attribute->getCode() . ']',
-                ['data_name' => $attribute->getCode()]
+                array_filter(
+                    [
+                        'data_name' => $attribute->getCode(),
+                        'type' => match ($attribute->getType()) {
+                            SourceField::TYPE_TEXT => 'string',
+                            default => null
+                        }
+                    ]
+                )
+
             );
         }
 
@@ -117,7 +124,7 @@ class GallyDataGridExtension extends AbstractExtension
             if (!\in_array($sourceField->getCode(), $proceed, true)) {
                 $filter = [
                     'data_name' => $sourceField->getCode(),
-                    'label' => $sourceField->getDefaultLabel() . ' Gally filter', // todo,
+                    'label' => $sourceField->getDefaultLabel(),
                     'visible' => false,
                     'disabled' => false,
                     'renderable' => true,
@@ -170,7 +177,7 @@ class GallyDataGridExtension extends AbstractExtension
         foreach ($gallyFilters as $gallyFilter) {
             $filter = [
                 'data_name' => $gallyFilter['field'],
-                'label' => $gallyFilter['label'] . ' Gally filter', // todo
+                'label' => $gallyFilter['label'],
                 'visible' => true,
                 'disabled' => false,
                 'renderable' => true,

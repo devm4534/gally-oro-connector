@@ -44,6 +44,20 @@ class SourceFieldProvider implements ProviderInterface
         'brand_LOCALIZATION_ID', // Brand field is managed as a select
     ];
 
+    private array $oroSystemAttribute = [ // todo conf
+        'status',
+        'assigned_to',
+        'manually_added_to',
+        'category_path',
+        'category_paths',
+        'is_variant',
+        'is_visible_by_default',
+        'visibility_anonymous',
+        'visibility_new',
+        'visible_for_customer',
+        'hidden_for_customer',
+    ];
+
     public function __construct(
         private SearchMappingProvider $mappingProvider,
         private EntityAliasResolver $entityAliasResolver,
@@ -108,6 +122,7 @@ class SourceFieldProvider implements ProviderInterface
                     $fieldType,
                     $defaultLabel,
                     $this->getLabels($labelKey, $defaultLabel),
+                    \in_array($fieldName, $this->oroSystemAttribute, true)
                 );
             }
         }
@@ -141,7 +156,6 @@ class SourceFieldProvider implements ProviderInterface
             'brand' === $fieldName => SourceField::TYPE_SELECT,
             str_ends_with($fieldName, '_enum') => SourceField::TYPE_SELECT,
             str_starts_with($fieldName, 'image_') => SourceField::TYPE_IMAGE,
-            str_starts_with($fieldName, 'is_') => SourceField::TYPE_BOOLEAN,
             default => $this->typeMapping[$fieldType] ?? SourceField::TYPE_TEXT,
         };
     }

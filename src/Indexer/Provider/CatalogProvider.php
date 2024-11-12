@@ -17,6 +17,7 @@ namespace Gally\OroPlugin\Indexer\Provider;
 use Doctrine\ORM\EntityManagerInterface;
 use Gally\Sdk\Entity\Catalog;
 use Gally\Sdk\Entity\LocalizedCatalog;
+use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\PricingBundle\Provider\WebsiteCurrencyProvider;
 use Oro\Bundle\WebsiteBundle\Entity\Repository\WebsiteRepository;
 use Oro\Bundle\WebsiteBundle\Entity\Website;
@@ -29,6 +30,8 @@ class CatalogProvider implements ProviderInterface
 {
     protected WebsiteRepository $websiteRepository;
     protected AbstractWebsiteLocalizationProvider $websiteLocalizationProvider;
+
+    private array $catalogCache = [];
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -47,16 +50,8 @@ class CatalogProvider implements ProviderInterface
         $websites = $this->websiteRepository->findAll();
 
         foreach ($websites as $website) {
-            $localizations = $this->websiteLocalizationProvider->getLocalizations($website);
-            $catalog = new Catalog($this->getCatalogCodeFromWebsiteId($website->getId()), $website->getName());
-            foreach ($localizations as $localization) {
-                yield new LocalizedCatalog(
-                    $catalog,
-                    'website_' . $website->getId() . '_' . $localization->getFormattingCode(),
-                    $localization->getName(),
-                    $localization->getFormattingCode(),
-                    $this->currencyProvider->getWebsiteDefaultCurrency($website->getId())
-                );
+            foreach ($this->websiteLocalizationProvider->getLocalizations($website) as $localization) {
+                yield $this->buildLocalizedCatalog($website, $localization);
             }
         }
     }
@@ -64,5 +59,23 @@ class CatalogProvider implements ProviderInterface
     public function getCatalogCodeFromWebsiteId(int $websiteId): string
     {
         return 'website_' . $websiteId;
+    }
+
+    public function buildLocalizedCatalog(Website $website, Localization $localization): LocalizedCatalog
+    {
+        if (!\array_key_exists($website->getId(), $this->catalogCache)) {
+            $this->catalogCache[$website->getId()] = new Catalog(
+                $this->getCatalogCodeFromWebsiteId($website->getId()),
+                $website->getName(),
+            );
+        }
+
+        return new LocalizedCatalog(
+            $this->catalogCache[$website->getId()],
+            'website_' . $website->getId() . '_' . $localization->getFormattingCode(),
+            $localization->getName(),
+            $localization->getFormattingCode(),
+            $this->currencyProvider->getWebsiteDefaultCurrency($website->getId())
+        );
     }
 }

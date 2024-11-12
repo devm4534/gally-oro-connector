@@ -44,7 +44,7 @@ class BooleanDataNormalizer extends AbstractNormalizer
                     $fieldConfig = null;
                 }
                 $type = $fieldConfig ? $fieldConfig->getId()->getFieldType() : $fieldData['type'];
-                if ('boolean' === $type || str_starts_with($fieldName, 'is_')) {
+                if ('boolean' === $type) {
                     $this->booleanAttributes[] = $fieldName;
                 }
             }

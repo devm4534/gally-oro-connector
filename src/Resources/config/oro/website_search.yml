@@ -21,14 +21,16 @@ Oro\Bundle\ProductBundle\Entity\Brand:
 
 Oro\Bundle\ProductBundle\Entity\Product:
     fields:
-        - name: id
-          type: integer
         - name: inv_qty
           type: decimal
-        - name: visibility_customer.customer_id
+        - name: category_paths
           type: text
-        - name: visibility_customer.value
-          type: integer
+        - name: category_paths.CATEGORY_PATH
+          type: text
+        - name: visible_for_customer
+          type: text
+        - name: hidden_for_customer
+          type: text
 
 Oro\Bundle\WebsiteSearchSuggestionBundle\Entity\Suggestion:
     fields:

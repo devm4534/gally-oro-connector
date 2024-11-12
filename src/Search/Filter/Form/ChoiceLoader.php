@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Form;
+namespace Gally\OroPlugin\Search\Filter\Form;
 
 use Symfony\Component\Form\ChoiceList\ArrayChoiceList;
 use Symfony\Component\Form\ChoiceList\ChoiceListInterface;

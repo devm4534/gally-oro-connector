@@ -16,7 +16,6 @@ namespace Gally\OroPlugin\Search;
 
 use Gally\OroPlugin\Indexer\Provider\CatalogProvider;
 use Gally\Sdk\Entity\LocalizedCatalog;
-use Oro\Bundle\CatalogBundle\Handler\RequestProductHandler;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
 use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;

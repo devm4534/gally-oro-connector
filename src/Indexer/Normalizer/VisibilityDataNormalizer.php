@@ -16,6 +16,7 @@ namespace Gally\OroPlugin\Indexer\Normalizer;
 
 use Oro\Bundle\CustomerBundle\Placeholder\CustomerIdPlaceholder;
 use Oro\Bundle\ProductBundle\Entity\Product;
+use Oro\Bundle\VisibilityBundle\Entity\VisibilityResolved\BaseVisibilityResolved;
 use Oro\Bundle\WebsiteBundle\Entity\Website;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderValue;
 
@@ -33,7 +34,8 @@ class VisibilityDataNormalizer extends AbstractNormalizer
         array &$preparedEntityData,
     ): void {
         if (Product::class === $entityClass) {
-            $visibilitiesByCustomer = [];
+            $visibleForCustomers = [];
+            $hiddenForCustomers = [];
             $visibilities = $fieldsValues['visibility_customer.CUSTOMER_ID'] ?? [];
             foreach ($this->toArray($visibilities) as $value) {
                 $value = $value['value'];
@@ -44,14 +46,18 @@ class VisibilityDataNormalizer extends AbstractNormalizer
                     $value = $value->getValue();
                 }
 
-                $visibilitiesByCustomer[] = [
-                    'customer_id' => $placeholders[CustomerIdPlaceholder::NAME],
-                    'value' => $value,
-                ];
+                if (BaseVisibilityResolved::VISIBILITY_VISIBLE === $value) {
+                    $visibleForCustomers[] = $placeholders[CustomerIdPlaceholder::NAME];
+                } elseif (BaseVisibilityResolved::VISIBILITY_HIDDEN === $value) {
+                    $hiddenForCustomers[] = $placeholders[CustomerIdPlaceholder::NAME];
+                }
             }
 
-            if (!empty($visibilitiesByCustomer)) {
-                $preparedEntityData['visibility_customer'] = $visibilitiesByCustomer;
+            if (!empty($visibleForCustomers)) {
+                $preparedEntityData['visible_for_customer'] = $visibleForCustomers;
+            }
+            if (!empty($hiddenForCustomers)) {
+                $preparedEntityData['hidden_for_customer'] = $hiddenForCustomers;
             }
             unset($fieldsValues['visibility_customer.CUSTOMER_ID']);
         }
