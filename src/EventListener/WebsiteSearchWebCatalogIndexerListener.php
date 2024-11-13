@@ -16,9 +16,11 @@ namespace Gally\OroPlugin\EventListener;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Gally\OroPlugin\Engine\Indexer;
+use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
 use Oro\Bundle\ProductBundle\EventListener\WebsiteSearchProductIndexerListenerInterface;
+use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 use Oro\Bundle\WebCatalogBundle\Entity\ContentNode;
 use Oro\Bundle\WebCatalogBundle\Provider\WebCatalogProvider;
 use Oro\Bundle\WebsiteBundle\Entity\Website;
@@ -36,6 +38,7 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
     public function __construct(
         private WebsiteContextManager $websiteContextManager,
         private ManagerRegistry $doctrine,
+        private EngineParameters $engineParameters,
         private WebCatalogProvider $webCatalogProvider,
         protected LocalizationHelper $localizationHelper,
     ) {
@@ -43,6 +46,10 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
 
     public function onWebsiteSearchIndex(IndexEntityEvent $event): void
     {
+        if (ElasticSearch::ENGINE_NAME === $this->engineParameters->getEngineName()) {
+            return;
+        }
+
         // Todo manage partial update ?
         if (!$this->hasContextFieldGroup($event->getContext(), 'main')) {
             return;

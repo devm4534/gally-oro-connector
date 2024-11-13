@@ -17,9 +17,11 @@ namespace Gally\OroPlugin\EventListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Gally\OroPlugin\Engine\Indexer;
+use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\ProductBundle\EventListener\WebsiteSearchProductIndexerListenerInterface;
+use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 use Oro\Bundle\WebsiteSearchBundle\Engine\Context\ContextTrait;
 use Oro\Bundle\WebsiteSearchBundle\Event\IndexEntityEvent;
 
@@ -34,11 +36,16 @@ class WebsiteSearchChildDataIndexerListener implements WebsiteSearchProductIndex
 
     public function __construct(
         private ManagerRegistry $doctrine,
+        private EngineParameters $engineParameters,
     ) {
     }
 
     public function onWebsiteSearchIndex(IndexEntityEvent $event): void
     {
+        if (ElasticSearch::ENGINE_NAME === $this->engineParameters->getEngineName()) {
+            return;
+        }
+
         if (!$this->hasContextFieldGroup($event->getContext(), 'variant')) {
             return;
         }

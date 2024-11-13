@@ -100,6 +100,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
             [$_, $value] = explode('_', $variantId);
         } elseif (str_starts_with($field, 'category_paths.')) {
             [$field, $value] = explode('.', $field);
+            $type = 'text';
             $operator = Request::FILTER_OPERATOR_IN;
         } elseif (str_starts_with($field, 'visibility_customer.')) {
             [$field, $customerId] = explode('.', $field);
@@ -143,7 +144,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
         }
 
         return match ($type) {
-            'int' => (int) $value,
+            'integer' => (int) $value,
             'float' => (float) $value,
             'bool' => (bool) $value,
             'text' => (string) $value,

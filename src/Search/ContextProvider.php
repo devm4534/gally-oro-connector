@@ -53,6 +53,9 @@ class ContextProvider
 
     public function getCurrentContentNode(): ?ContentNode
     {
-        return $this->requestWebContentVariantProvider->getContentVariant()?->getNode();
+        $contentVariant = $this->requestWebContentVariantProvider->getContentVariant();
+        $isCategoryNode = $contentVariant && \in_array($contentVariant->getType(), ['category_page', 'variant'], true);
+
+        return $isCategoryNode ? $this->requestWebContentVariantProvider->getContentVariant()?->getNode() : null;
     }
 }

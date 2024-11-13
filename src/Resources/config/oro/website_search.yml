@@ -23,10 +23,6 @@ Oro\Bundle\ProductBundle\Entity\Product:
     fields:
         - name: inv_qty
           type: decimal
-        - name: category_paths
-          type: text
-        - name: category_paths.CATEGORY_PATH
-          type: text
         - name: visible_for_customer
           type: text
         - name: hidden_for_customer

@@ -50,6 +50,7 @@ services:
         arguments:
             - '@oro_website_search.manager.website_context_manager'
             - '@doctrine'
+            - '@oro_website_search.engine.parameters'
             - '@oro_web_catalog.web_catalog_provider'
             - '@oro_locale.helper.localization'
         tags:
@@ -58,6 +59,7 @@ services:
     Gally\OroPlugin\EventListener\WebsiteSearchInventoryLevelIndexerListener:
         arguments:
             - '@doctrine'
+            - '@oro_website_search.engine.parameters'
             - '@oro_warehouse.provider.enabled_warehouses_provider'
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
@@ -65,6 +67,7 @@ services:
     Gally\OroPlugin\EventListener\WebsiteSearchChildDataIndexerListener:
         arguments:
             - '@doctrine'
+            - '@oro_website_search.engine.parameters'
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
 

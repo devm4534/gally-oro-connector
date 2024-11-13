@@ -18,12 +18,14 @@ use Gally\OroPlugin\Engine\SearchEngine;
 use Gally\OroPlugin\Registry\SearchRegistry;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
+use Gally\Sdk\GraphQl\Request;
 use Gally\Sdk\GraphQl\Response;
 use Gally\Sdk\Service\SearchManager;
 use Oro\Bundle\DataGridBundle\Datagrid\Common\DatagridConfiguration;
 use Oro\Bundle\DataGridBundle\Datagrid\Common\MetadataObject;
 use Oro\Bundle\DataGridBundle\Datasource\DatasourceInterface;
 use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
+use Oro\Bundle\DataGridBundle\Extension\Sorter\Configuration;
 use Oro\Bundle\EntityExtendBundle\Form\Util\EnumTypeHelper;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters;
@@ -44,72 +46,28 @@ class GallyDataGridExtension extends AbstractExtension
     public function isApplicable(DatagridConfiguration $config): bool
     {
         return SearchEngine::ENGINE_NAME === $this->engineParameters->getEngineName()
-            && 'frontend-product-search-grid' === $config->getName();
+            && ('frontend-product-search-grid' === $config->getName()
+            || 'frontend-catalog-allproducts-grid' === $config->getName());
     }
 
-    public function visitDatasource(DatagridConfiguration $config, DatasourceInterface $datasource)
+    public function visitDatasource(DatagridConfiguration $config, DatasourceInterface $datasource): void
     {
         $this->addFilterFieldsFromGallyConfiguration($config);
         $this->addSortFieldsFromGallyConfiguration($config);
     }
 
-    public function visitMetadata(DatagridConfiguration $config, MetadataObject $object)
+    public function visitMetadata(DatagridConfiguration $config, MetadataObject $object): void
     {
         $this->addFiltersFromGallyResult($config, $object);
+        $this->setAppliedSortingFromGallyResult($config);
     }
 
-    public function getPriority()
+    public function getPriority(): int
     {
         return 100;
     }
 
-    private function addSortFieldsFromGallyConfiguration(DatagridConfiguration $config)
-    {
-        $sortableAttributes = $this->searchManager->getProductSortingOptions();
-
-        /** @var SourceField[] $sorters */
-        $sorters = [];
-        $config->offsetSetByPath('[sorters][columns]', []);
-        foreach ($sortableAttributes as $attribute) {
-            $sorters[$attribute->getCode()] = $attribute;
-            $config->offsetSetByPath(
-                '[sorters][columns][' . $attribute->getCode() . ']',
-                array_filter(
-                    [
-                        'data_name' => $attribute->getCode(),
-                        'type' => match ($attribute->getType()) {
-                            SourceField::TYPE_TEXT => 'string',
-                            default => null
-                        }
-                    ]
-                )
-
-            );
-        }
-
-        $proceed = [];
-        foreach ($config->offsetGetOr('columns') ?? [] as $name => $column) {
-            if (\array_key_exists($name, $sorters)) {
-                $proceed[] = $name;
-            }
-        }
-
-        $columnToAdd = array_diff(array_keys($sorters), $proceed);
-        foreach ($columnToAdd as $attributeCode) {
-            $attribute = $sorters[$attributeCode];
-            $columnData = [
-                'label' => $attribute->getDefaultLabel(),
-                'type' => 'field',
-                'frontend_type' => 'string',
-                'translatable' => false,
-                'editable' => false,
-                'shortenableLabel' => true,
-            ];
-            $config->offsetAddToArrayByPath('[columns]', [$attribute->getCode() => $columnData]);
-        }
-    }
-
-    private function addFilterFieldsFromGallyConfiguration(DatagridConfiguration $config)
+    private function addFilterFieldsFromGallyConfiguration(DatagridConfiguration $config): void
     {
         $filterableSourceField = $this->searchManager->getFilterableSourceField(new Metadata('product')); // todo get entity from  context & cache this !
         $filters = $config->offsetGetByPath('[filters][columns]');
@@ -157,7 +115,57 @@ class GallyDataGridExtension extends AbstractExtension
         $config->offsetSetByPath('[filters][columns]', $filters);
     }
 
-    private function addFiltersFromGallyResult(DatagridConfiguration $config, MetadataObject $object)
+    private function addSortFieldsFromGallyConfiguration(DatagridConfiguration $config): void
+    {
+        $sortableAttributes = $this->searchManager->getProductSortingOptions();
+
+        /** @var SourceField[] $sorters */
+        $sorters = [];
+        $config->offsetSetByPath('[sorters][columns]', []);
+        foreach ($sortableAttributes as $attribute) {
+            if (Request::SORT_RELEVANCE_FIELD !== $attribute->getCode()) {
+                $sorters[$attribute->getCode()] = $attribute;
+                $config->offsetSetByPath(
+                    '[sorters][columns][' . $attribute->getCode() . ']',
+                    array_filter(
+                        [
+                            'data_name' => $attribute->getCode(),
+                            'type' => match ($attribute->getType()) {
+                                SourceField::TYPE_TEXT => 'string',
+                                default => null
+                            },
+                        ]
+                    )
+                );
+            }
+        }
+
+        $proceed = [];
+        foreach ($config->offsetGetOr('columns') ?? [] as $name => $column) {
+            if (\array_key_exists($name, $sorters)) {
+                $proceed[] = $name;
+            }
+        }
+
+        $columnToAdd = array_diff(array_keys($sorters), $proceed);
+        foreach ($columnToAdd as $attributeCode) {
+            $attribute = $sorters[$attributeCode];
+            $columnData = [
+                'label' => $attribute->getDefaultLabel(),
+                'type' => 'field',
+                'frontend_type' => 'string',
+                'translatable' => false,
+                'editable' => false,
+                'shortenableLabel' => true,
+            ];
+            $config->offsetAddToArrayByPath('[columns]', [$attribute->getCode() => $columnData]);
+        }
+
+        // Let gally define default sort by.
+        $config->offsetSetByPath(Configuration::DISABLE_DEFAULT_SORTING_PATH, false);
+    }
+
+    private function addFiltersFromGallyResult(DatagridConfiguration $config, MetadataObject $object): void
     {
         $gallyFilters = $this->registry->getResponse()->getAggregations();
         $currentFilters = $config->offsetGetByPath('[filters][columns]') ?? [];
@@ -335,5 +343,18 @@ class GallyDataGridExtension extends AbstractExtension
         //        );
 
         $config->offsetSetByPath('[filters][columns]', $filters);
+    }
+
+    private function setAppliedSortingFromGallyResult(DatagridConfiguration $config): void
+    {
+        $sortField = $this->registry->getResponse()->getSortField();
+        $sortDirection = $this->registry->getResponse()->getSortDirection();
+
+        if (Request::SORT_RELEVANCE_FIELD !== $sortField) {
+            $config->offsetSetByPath(
+                '[sorters][default]',
+                [$sortField => Request::SORT_DIRECTION_ASC === $sortDirection ? 'ASC' : 'DESC']
+            );
+        }
     }
 }

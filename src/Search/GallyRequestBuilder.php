@@ -105,9 +105,8 @@ class GallyRequestBuilder
             [$type, $field] = Criteria::explodeFieldTypeName($order);
 
             if ('category_sort_order' == $field || str_starts_with($field, 'assigned_to_sort_order.')) {
-                // todo manage this globally
-                $field = 'category__position';
-                $field = '_score';
+                // Let gally manage default sorting order.
+                return [null, null];
             }
 
             return [$field, 'ASC' === $orders[$order] ? Request::SORT_DIRECTION_ASC : Request::SORT_DIRECTION_DESC];
