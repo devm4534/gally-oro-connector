@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Voter;
 
-use Gally\OroPlugin\Engine\SearchEngine;
+use Gally\OroPlugin\Search\SearchEngine;
 use Oro\Bundle\FeatureToggleBundle\Checker\Voter\VoterInterface;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 

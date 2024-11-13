@@ -12,10 +12,10 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\EventListener;
+namespace Gally\OroPlugin\Indexer\EventListener;
 
 use Doctrine\Persistence\ManagerRegistry;
-use Gally\OroPlugin\Engine\Indexer;
+use Gally\OroPlugin\Indexer\Indexer;
 use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;

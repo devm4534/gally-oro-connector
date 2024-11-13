@@ -46,7 +46,7 @@ services:
         tags:
             - { name: console.command }
 
-    Gally\OroPlugin\EventListener\WebsiteSearchWebCatalogIndexerListener:
+    Gally\OroPlugin\Indexer\EventListener\WebsiteSearchWebCatalogIndexerListener:
         arguments:
             - '@oro_website_search.manager.website_context_manager'
             - '@doctrine'
@@ -56,7 +56,7 @@ services:
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.contentnode, method: onWebsiteSearchIndex, priority: -255 }
 
-    Gally\OroPlugin\EventListener\WebsiteSearchInventoryLevelIndexerListener:
+    Gally\OroPlugin\Indexer\EventListener\WebsiteSearchInventoryLevelIndexerListener:
         arguments:
             - '@doctrine'
             - '@oro_website_search.engine.parameters'
@@ -64,7 +64,7 @@ services:
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
 
-    Gally\OroPlugin\EventListener\WebsiteSearchChildDataIndexerListener:
+    Gally\OroPlugin\Indexer\EventListener\WebsiteSearchChildDataIndexerListener:
         arguments:
             - '@doctrine'
             - '@oro_website_search.engine.parameters'
@@ -128,7 +128,7 @@ services:
             - '%gally_config.attribute_mapping%'
             - !tagged_iterator { tag: 'gally.indexer_normalizer' }
 
-    Gally\OroPlugin\Engine\Indexer:
+    Gally\OroPlugin\Indexer\Indexer:
         arguments:
             - '@oro_entity.doctrine_helper'
             - '@oro_website_search.provider.search_mapping'

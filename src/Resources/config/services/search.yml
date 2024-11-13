@@ -1,5 +1,5 @@
 services:
-    Gally\OroPlugin\Registry\SearchRegistry: ~
+    Gally\OroPlugin\Search\SearchRegistry: ~
 
     Gally\OroPlugin\Search\ContextProvider:
         arguments:
@@ -30,7 +30,7 @@ services:
         tags:
             - { name: form.type, alias: gally_search_type_select_filter }
 
-    Gally\OroPlugin\Engine\SearchEngine:
+    Gally\OroPlugin\Search\SearchEngine:
         arguments:
             - '@event_dispatcher'
             - '@Gally\OroPlugin\Resolver\QueryPlaceholderResolver'
@@ -39,7 +39,7 @@ services:
             #            - '@oro_website_elastic_search.request_builder.registry'
             - '@Gally\Sdk\Service\SearchManager'
             - '@Gally\OroPlugin\Search\GallyRequestBuilder'
-            - '@Gally\OroPlugin\Registry\SearchRegistry'
+            - '@Gally\OroPlugin\Search\SearchRegistry'
             - '%gally_config.attribute_mapping%'
         calls:
             - ['setMapper', ['@oro_website_search.engine.mapper']]
@@ -50,7 +50,6 @@ services:
         arguments:
             - '@oro_website_search.engine.parameters'
             - '@Gally\Sdk\Service\SearchManager'
-            - '@Gally\OroPlugin\Registry\SearchRegistry'
-            - '@oro_entity_extend.enum_type_helper'
+            - '@Gally\OroPlugin\Search\SearchRegistry'
         tags:
             - { name: oro_datagrid.extension }

@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Engine;
+namespace Gally\OroPlugin\Indexer;
 
 use Gally\OroPlugin\Indexer\Provider\CatalogProvider;
 use Gally\OroPlugin\Indexer\Provider\SourceFieldProvider;

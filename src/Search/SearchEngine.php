@@ -12,10 +12,8 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Engine;
+namespace Gally\OroPlugin\Search;
 
-use Gally\OroPlugin\Registry\SearchRegistry;
-use Gally\OroPlugin\Search\GallyRequestBuilder;
 use Gally\Sdk\Service\SearchManager;
 use Oro\Bundle\SearchBundle\Provider\AbstractSearchMappingProvider;
 use Oro\Bundle\SearchBundle\Query\Query;

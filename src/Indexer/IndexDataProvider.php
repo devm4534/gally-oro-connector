@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Indexer;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Gally\OroPlugin\Engine\Indexer;
 use Gally\OroPlugin\Indexer\Normalizer\AbstractNormalizer;
 use Oro\Bundle\ConfigBundle\Config\ConfigManager;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;

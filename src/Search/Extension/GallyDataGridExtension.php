@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search\Extension;
 
-use Gally\OroPlugin\Engine\SearchEngine;
-use Gally\OroPlugin\Registry\SearchRegistry;
+use Gally\OroPlugin\Search\SearchEngine;
+use Gally\OroPlugin\Search\SearchRegistry;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
 use Gally\Sdk\GraphQl\Request;
@@ -26,8 +26,6 @@ use Oro\Bundle\DataGridBundle\Datagrid\Common\MetadataObject;
 use Oro\Bundle\DataGridBundle\Datasource\DatasourceInterface;
 use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
 use Oro\Bundle\DataGridBundle\Extension\Sorter\Configuration;
-use Oro\Bundle\EntityExtendBundle\Form\Util\EnumTypeHelper;
-use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 
 /**
@@ -39,7 +37,6 @@ class GallyDataGridExtension extends AbstractExtension
         private EngineParameters $engineParameters,
         private SearchManager $searchManager,
         private SearchRegistry $registry,
-        private EnumTypeHelper $enumTypeHelper,
     ) {
     }
 
@@ -58,7 +55,7 @@ class GallyDataGridExtension extends AbstractExtension
 
     public function visitMetadata(DatagridConfiguration $config, MetadataObject $object): void
     {
-        $this->addFiltersFromGallyResult($config, $object);
+        $this->addFiltersFromGallyResult($config);
         $this->setAppliedSortingFromGallyResult($config);
     }
 
@@ -69,7 +66,7 @@ class GallyDataGridExtension extends AbstractExtension
 
     private function addFilterFieldsFromGallyConfiguration(DatagridConfiguration $config): void
     {
-        $filterableSourceField = $this->searchManager->getFilterableSourceField(new Metadata('product')); // todo get entity from  context & cache this !
+        $filterableSourceField = $this->searchManager->getFilterableSourceField(new Metadata('product'));
         $filters = $config->offsetGetByPath('[filters][columns]');
 
         $proceed = [];
@@ -80,35 +77,46 @@ class GallyDataGridExtension extends AbstractExtension
 
         foreach ($filterableSourceField as $sourceField) {
             if (!\in_array($sourceField->getCode(), $proceed, true)) {
+                $fieldName = $sourceField->getCode();
+                $type = null;
                 $filter = [
-                    'data_name' => $sourceField->getCode(),
                     'label' => $sourceField->getDefaultLabel(),
+                    'type' => 'gally-select',
                     'visible' => false,
                     'disabled' => false,
                     'renderable' => true,
-                    //                    'multiple' => false,
-                    //                    'expanded' => false,
-                    //                    'choices' => [],
                 ];
 
                 // @see \Gally\Search\Decoration\GraphQl\AddAggregationsData::formatAggregation
-                $filter['type'] = match ($sourceField->getType()) {
-                    SourceField::TYPE_PRICE => 'frontend-product-price',
-                    //                SourceField::TYPE_FLOAT, SourceField::TYPE_INT => self::AGGREGATION_TYPE_SLIDER,
-                    //                SourceField::TYPE_CATEGORY => self::AGGREGATION_TYPE_CATEGORY,
-                    //                SourceField::TYPE_STOCK, SourceField::TYPE_BOOLEAN => self::AGGREGATION_TYPE_BOOLEAN,
-                    //                SourceField::TYPE_DATE => self::AGGREGATION_TYPE_DATE_HISTOGRAM,
-                    //                SourceField::TYPE_LOCATION => self::AGGREGATION_TYPE_HISTOGRAM,
-                    default => 'gally-select',
-                };
-
-                if (SourceField::TYPE_SELECT === $sourceField->getType()) {
-                    $filter['data_name'] .= '__value';
-                    $enumCode = $this->enumTypeHelper->getEnumCode(Product::class, $sourceField->getCode());
-                    //                    $filter['enum_code'] = $enumCode;
+                switch ($sourceField->getType()) {
+                    case SourceField::TYPE_CATEGORY:
+                        $fieldName .= '__id';
+                        $filter['type'] = 'gally-select';
+                        break;
+                    case SourceField::TYPE_PRICE:
+                        $fieldName .= '__price';
+                        $filter['type'] = 'frontend-product-price';
+                        break;
+                    case SourceField::TYPE_SELECT:
+                        $fieldName .= '__value';
+                        $filter['type'] = 'gally-select';
+                        break;
+                    case SourceField::TYPE_STOCK:
+                        $fieldName .= '__status';
+                        $filter['type'] = 'boolean';
+                        break;
+                    case SourceField::TYPE_FLOAT:
+                    case SourceField::TYPE_INT:
+                        $filter['type'] = 'number-range';
+                        break;
+                    case SourceField::TYPE_BOOLEAN:
+                        $type = 'bool';
+                        $filter['type'] = 'boolean';
+                        break;
                 }
 
-                $filters[$filter['data_name']] = $filter;
+                $filter['data_name'] = $type ? "$type.$fieldName" : $fieldName;
+                $filters[$fieldName] = $filter;
             }
         }
 
@@ -165,23 +173,18 @@ class GallyDataGridExtension extends AbstractExtension
         $config->offsetSetByPath(Configuration::DISABLE_DEFAULT_SORTING_PATH, false);
     }
 
-    private function addFiltersFromGallyResult(DatagridConfiguration $config, MetadataObject $object): void
+    private function addFiltersFromGallyResult(DatagridConfiguration $config): void
     {
         $gallyFilters = $this->registry->getResponse()->getAggregations();
         $currentFilters = $config->offsetGetByPath('[filters][columns]') ?? [];
         $filters = [];
 
-        // current : all_text, sku, names, brand, minimal_price,
-
-        foreach ($currentFilters as $filter) {
-            $name = $filter['data_name'];
-            // Todo check if we should keep these default filters
-            if (\in_array($name, ['all_text_LOCALIZATION_ID', 'sku', 'names'], true)) {
-                $filters[] = $filter;
+        foreach ($currentFilters as $code => $filter) {
+            if (\in_array($code, ['sku', 'names'], true)) {
+                $filters[$code] = $filter;
             }
         }
 
-        // Todo  Iterate over current filter to get base array !
         foreach ($gallyFilters as $gallyFilter) {
             $filter = [
                 'data_name' => $gallyFilter['field'],
@@ -189,158 +192,21 @@ class GallyDataGridExtension extends AbstractExtension
                 'visible' => true,
                 'disabled' => false,
                 'renderable' => true,
-                //                'multiple' => true,
-                //                'expanded' => true,
             ];
-            if (Response::FILTER_TYPE_CHECKBOX === $gallyFilter['type']) {
+
+            if (Response::FILTER_TYPE_SLIDER === $gallyFilter['type']) {
+                $filter['type'] = 'price__price' === $gallyFilter['field'] ? 'frontend-product-price' : 'number-range';
+                $filters[$gallyFilter['field']] = $filter;
+            } elseif (Response::FILTER_TYPE_BOOLEAN === $gallyFilter['type']) {
+                $filter['type'] = 'boolean';
+                $filters[$gallyFilter['field']] = $filter;
+            } else {
                 $filter['choices'] = $gallyFilter['options'];
                 $filter['options']['gally_options'] = $gallyFilter['options'];
                 $filter['type'] = 'gally-select';
                 $filters[$gallyFilter['field']] = $filter;
-            //                    "field_options": {
-            //                                    "type": "ref-one"
-            //                    },
-            //                    "type": "multichoice",
-            //                    "force_like": true,
-            //                    "translatable": true,
-            //                    "case_insensitive": true,
-            //                    "min_length": 0,
-            //                    "max_length": 9223372036854775807,
-            //                    "order": 4,
-            //                    "lazy": false,
-            //                    "populateDefault": false,
-            //                    "cacheId": null
-            } elseif (Response::FILTER_TYPE_SLIDER === $gallyFilter['type']) {
-                $filter['type'] = 'frontend-product-price';
-                $filters[$gallyFilter['field']] = $filter;
-            //        "choices": [
-            //            {
-            //                "label": "between",
-            //                "value": "7",
-            //                "data": 7,
-            //                "attr": [],
-            //                "labelTranslationParameters": []
-            //            },
-            //            {
-            //                "label": "equals",
-            //                "value": "3",
-            //                "data": 3,
-            //                "attr": [],
-            //                "labelTranslationParameters": []
-            //            },
-            //            {
-            //                "label": "more than",
-            //                "value": "2",
-            //                "data": 2,
-            //                "attr": [],
-            //                "labelTranslationParameters": []
-            //            },
-            //            {
-            //                "label": "less than",
-            //                "value": "6",
-            //                "data": 6,
-            //                "attr": [],
-            //                "labelTranslationParameters": []
-            //            },
-            //            {
-            //                "label": "equals or more than",
-            //                "value": "1",
-            //                "data": 1,
-            //                "attr": [],
-            //                "labelTranslationParameters": []
-            //            },
-            //            {
-            //                "label": "equals or less than",
-            //                "value": "5",
-            //                "data": 5,
-            //                "attr": [],
-            //                "labelTranslationParameters": []
-            //            }
-            //        ],
-            //        "type": "frontend-product-price",
-            //        "translatable": true,
-            //        "force_like": false,
-            //        "case_insensitive": true,
-            //        "min_length": 0,
-            //        "max_length": 9223372036854775807,
-            //        "order": 5,
-            //        "lazy": false,
-            //        "formatterOptions": {
-            //                    "grouping": true,
-            //            "orderSeparator": ",",
-            //            "decimalSeparator": "."
-            //        },
-            //        "arraySeparator": ",",
-            //        "arrayOperators": [
-            //                    9,
-            //                    10
-            //                ],
-            //        "dataType": "data_decimal",
-            //        "unitChoices": [
-            //            {
-            //                "data": "each",
-            //                "value": "each",
-            //                "label": "each",
-            //                "shortLabel": "ea"
-            //            },
-            //            {
-            //                "data": "hour",
-            //                "value": "hour",
-            //                "label": "hour",
-            //                "shortLabel": "hr"
-            //            },
-            //            {
-            //                "data": "item",
-            //                "value": "item",
-            //                "label": "item",
-            //                "shortLabel": "item"
-            //            },
-            //            {
-            //                "data": "kg",
-            //                "value": "kg",
-            //                "label": "kilogram",
-            //                "shortLabel": "kg"
-            //            },
-            //            {
-            //                "data": "piece",
-            //                "value": "piece",
-            //                "label": "piece",
-            //                "shortLabel": "pc"
-            //            },
-            //            {
-            //                "data": "set",
-            //                "value": "set",
-            //                "label": "set",
-            //                "shortLabel": "set"
-            //            }
-            //        ],
-            //        "cacheId": null
-            } else {
-                // Todo boolean
-                $toto = 'blop';
             }
         }
-
-        //        $choices = $object->offsetGetByPath('[filters][0][choices]');
-        //        $object->offsetAddToArrayByPath(
-        //            '[filters]',
-        //            [
-        //                [
-        //                    'name' => 'test_color',
-        //                    'label' => 'Cumtom filter',
-        //                    'choices' => $choices,
-        //                    'type' => 'string',
-        //                    'max_length' => 255,
-        //                    'translatable' => true,
-        //                    'force_like' => false,
-        //                    'case_insensitive' => true,
-        //                    'min_length' => 0,
-        //                    'order' => 1,
-        //                    'lazy' => false,
-        //                    'cacheId' => null,
-        //                ]
-        //            ]
-        //        );
 
         $config->offsetSetByPath('[filters][columns]', $filters);
     }

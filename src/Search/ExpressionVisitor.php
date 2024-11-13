@@ -22,6 +22,7 @@ use Doctrine\Common\Collections\Expr\Value;
 use Gally\Sdk\GraphQl\Request;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Query\Criteria\Criteria;
+use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\VisibilityBundle\Entity\VisibilityResolved\BaseVisibilityResolved;
 
 class ExpressionVisitor extends BaseExpressionVisitor
@@ -58,26 +59,38 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
         $filters = [];
         foreach ($expr->getExpressionList() as $expression) {
-            $filters[] = $this->dispatch($expression, $isMainQuery);
+            $filter = $this->dispatch($expression, $isMainQuery);
+            if ($filter) {
+                if ($isMainQuery) {
+                    foreach ($filter as $field => $data) {
+                        if (!\array_key_exists($field, $filters)) {
+                            $filters[$field] = $data;
+                        } else {
+                            $filters['boolFilter'] = [
+                                $type => [
+                                    [$field => $filters[$field]],
+                                    [$field => $data],
+                                ],
+                            ];
+                        }
+                    }
+                } else {
+                    $filters[] = $filter;
+                }
+            }
         }
-        $filters = array_values(array_filter($filters));
+        $filters = array_filter($filters);
 
         return $isMainQuery
-            ? array_merge(...$filters)
+            ? $filters
             : ['boolFilter' => [$type => $filters]];
     }
 
     public function walkComparison(Comparison $comparison): ?array
     {
-        [$type, $field] = Criteria::explodeFieldTypeName($comparison->getField());
-        $field = $this->attributeMapping[$field] ?? $field;
+        [$type, $field] = $this->explodeFieldTypeName($comparison->getField());
         $value = $this->dispatch($comparison->getValue());
-        $operator = match ($comparison->getOperator()) {
-            'IN', 'NOT IN' => Request::FILTER_OPERATOR_IN,
-            'LIKE', 'NOT LIKE' => Request::FILTER_OPERATOR_MATCH,
-            'EXISTS', 'NOT EXISTS' => Request::FILTER_OPERATOR_EXISTS,
-            default => Request::FILTER_OPERATOR_EQ,
-        };
+        $operator = $this->getGallyOperator($comparison->getOperator());
         $hasNegation = str_starts_with($comparison->getOperator(), 'NOT');
 
         if ('all_text' === $field) {
@@ -88,13 +101,13 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
         if ('id' === $field) {
             $type = 'text';
-        } elseif ('inv_status' === $field) {
-            $field = 'stock.status';
+        } elseif ('inv_status' === $field || 'stock__status' === $field) {
             if (\count($value) > 1) {
-                return null; // if we want in stock and out of sotck product, we do not need this filter.
+                return null; // if we want in stock and out of stock product, we do not need this filter.
             }
-            $operator = Request::FILTER_OPERATOR_EQ;
-            $value = \in_array(Product::INVENTORY_STATUS_IN_STOCK, $value, true);
+            $type = 'bool';
+            $field = 'stock__status';
+            $value = \in_array(Product::INVENTORY_STATUS_IN_STOCK, $value, true) || \in_array(true, $value, true);
         } elseif (str_starts_with($field, 'assigned_to.') || str_starts_with($field, 'manually_added_to.')) {
             [$field, $variantId] = explode('.', $field);
             [$_, $value] = explode('_', $variantId);
@@ -102,6 +115,14 @@ class ExpressionVisitor extends BaseExpressionVisitor
             [$field, $value] = explode('.', $field);
             $type = 'text';
             $operator = Request::FILTER_OPERATOR_IN;
+        } elseif ('category__id' === $field && Request::FILTER_OPERATOR_IN === $operator) {
+            // Category filter do not support in operator
+            $value = array_map(
+                fn ($value) => [$field => [Request::FILTER_OPERATOR_EQ => $value]],
+                $value
+            );
+            $field = 'boolFilter';
+            $operator = '_should';
         } elseif (str_starts_with($field, 'visibility_customer.')) {
             [$field, $customerId] = explode('.', $field);
             $type = 'text';
@@ -120,6 +141,16 @@ class ExpressionVisitor extends BaseExpressionVisitor
             }
         }
 
+        if ('bool' === $type) {
+            if (\is_array($value) && \count($value) > 1) {
+                $operator = Request::FILTER_OPERATOR_EXISTS;
+                $value = true;
+            } else {
+                $operator = Request::FILTER_OPERATOR_EQ;
+                $value = \is_array($value) ? reset($value) : $value;
+            }
+        }
+
         $rule = [$field => [$operator => $this->enforceValueType($type, $value)]];
 
         return $hasNegation
@@ -135,6 +166,36 @@ class ExpressionVisitor extends BaseExpressionVisitor
     public function getSearchQuery(): ?string
     {
         return $this->searchQuery;
+    }
+
+    /**
+     * @return array [string, string]
+     */
+    private function explodeFieldTypeName(string $field): array
+    {
+        [$type, $field] = Criteria::explodeFieldTypeName($field);
+        if (str_contains($field, '.')) {
+            $parts = explode('.', $field, 2);
+            if ('bool' === $parts[0]) {
+                [$type, $field] = $parts;
+            }
+        }
+
+        return [$type, $this->attributeMapping[$field] ?? $field];
+    }
+
+    private function getGallyOperator(string $operator): string
+    {
+        return match ($operator) {
+            'IN', 'NOT IN' => Request::FILTER_OPERATOR_IN,
+            'LIKE', 'NOT LIKE' => Request::FILTER_OPERATOR_MATCH,
+            'EXISTS', 'NOT EXISTS' => Request::FILTER_OPERATOR_EXISTS,
+            '>' => Request::FILTER_OPERATOR_GT,
+            '>=' => Request::FILTER_OPERATOR_GTE,
+            '<' => Request::FILTER_OPERATOR_LT,
+            '<=' => Request::FILTER_OPERATOR_LTE,
+            default => Request::FILTER_OPERATOR_EQ,
+        };
     }
 
     private function enforceValueType(string $type, mixed $value): mixed

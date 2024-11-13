@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\EventListener;
+namespace Gally\OroPlugin\Indexer\EventListener;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;

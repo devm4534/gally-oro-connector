@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Decorator;
 
-use Gally\OroPlugin\Engine\SearchEngine;
+use Gally\OroPlugin\Search\SearchEngine;
 use Oro\Bundle\ProductBundle\Search\ProductIndexAttributeProviderInterface;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 

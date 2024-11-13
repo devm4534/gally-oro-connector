@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Registry;
+namespace Gally\OroPlugin\Search;
 
 use Gally\Sdk\GraphQl\Response;
 
