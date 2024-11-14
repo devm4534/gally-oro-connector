@@ -1,20 +1,27 @@
 <?php
+/**
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Gally to newer versions in the future.
+ *
+ * @package   Gally
+ * @author    Gally Team <elasticsuite@smile.fr>
+ * @copyright 2024-present Smile
+ * @license   Open Software License v. 3.0 (OSL-3.0)
+ */
+
+declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search;
 
 use Oro\Bundle\CustomerBundle\Entity\Customer;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
-use Oro\Bundle\SearchBundle\Query\Criteria\Criteria;
-use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\VisibilityBundle\Driver\AbstractCustomerPartialUpdateDriver;
-use Oro\Bundle\VisibilityBundle\Entity\VisibilityResolved\BaseVisibilityResolved;
-use Oro\Bundle\VisibilityBundle\Indexer\ProductVisibilityIndexer;
 use Oro\Bundle\VisibilityBundle\Visibility\Provider\ProductVisibilityProvider;
-use Oro\Bundle\WebsiteElasticSearchBundle\Manager\ElasticSearchPartialUpdateManager;
 use Oro\Bundle\WebsiteSearchBundle\Provider\PlaceholderProvider;
 
 /**
- * Driver for the partial update of the customer visibility in the website search index
+ * Driver for the partial update of the customer visibility in the website search index.
  */
 class CustomerPartialUpdateDriver extends AbstractCustomerPartialUpdateDriver
 {

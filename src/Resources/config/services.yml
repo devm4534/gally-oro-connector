@@ -22,9 +22,13 @@ services:
             - '@oro_website_search.placeholder.registry'
 
     Gally\OroPlugin\Resolver\QueryPlaceholderResolver:
+        class: Oro\Bundle\WebsiteSearchBundle\Resolver\QueryPlaceholderResolver
         public: false
         arguments:
             - '@Gally\OroPlugin\Placeholder\PlaceholderDecorator'
+
+    Gally\OroPlugin\Resolver\PriceGroupResolver:
+        public: false
 
     oro_website_elastic_search.voter.elastic_search_engine_feature_voter:
         class: Gally\OroPlugin\Voter\ElasticSearchEngineFeatureVoter

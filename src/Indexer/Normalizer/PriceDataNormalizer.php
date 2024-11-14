@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Indexer\Normalizer;
 
+use Gally\OroPlugin\Resolver\PriceGroupResolver;
 use Oro\Bundle\ConfigBundle\Config\ConfigManager;
 use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\FeatureToggleBundle\Checker\FeatureChecker;
@@ -24,6 +25,7 @@ use Oro\Bundle\PricingBundle\Entity\Repository\CombinedPriceListRepository;
 use Oro\Bundle\PricingBundle\Placeholder\CPLIdPlaceholder;
 use Oro\Bundle\PricingBundle\Placeholder\CurrencyPlaceholder;
 use Oro\Bundle\PricingBundle\Placeholder\PriceListIdPlaceholder;
+use Oro\Bundle\PricingBundle\Placeholder\UnitPlaceholder;
 use Oro\Bundle\PricingBundle\Provider\WebsiteCurrencyProvider;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\WebsiteBundle\Entity\Website;
@@ -39,6 +41,7 @@ class PriceDataNormalizer extends AbstractNormalizer
         private ConfigManager $configManager,
         private FeatureChecker $featureChecker,
         private WebsiteCurrencyProvider $currencyProvider,
+        private PriceGroupResolver $priceGroupResolver,
     ) {
     }
 
@@ -64,7 +67,10 @@ class PriceDataNormalizer extends AbstractNormalizer
     ): void {
         if (Product::class === $entityClass) {
             $prices = [];
-            $minimalPrices = $fieldsValues['minimal_price.CPL_ID_CURRENCY'] ?? [];
+            $minimalPrices = array_merge(
+                $fieldsValues['minimal_price.CPL_ID_CURRENCY'] ?? [],
+                $fieldsValues['minimal_price.CPL_ID_CURRENCY_UNIT'] ?? [],
+            );
             foreach ($this->toArray($minimalPrices) as $value) {
                 $value = $value['value'];
                 $placeholders = [];
@@ -74,15 +80,23 @@ class PriceDataNormalizer extends AbstractNormalizer
                     $value = $value->getValue();
                 }
 
-                if ($this->defaultCurrency !== $placeholders[CurrencyPlaceholder::NAME]) {
-                    continue;
-                }
+                $priceListId = $placeholders[CPLIdPlaceholder::NAME] ?: $placeholders[PriceListIdPlaceholder::NAME];
+                $prices[] = [
+                    'price' => (float) $value,
+                    'group_id' => $this->priceGroupResolver->getGroupId(
+                        isset($placeholders[CPLIdPlaceholder::NAME]),
+                        $priceListId,
+                        $placeholders[CurrencyPlaceholder::NAME],
+                        $placeholders[UnitPlaceholder::NAME] ?? null
+                    ),
+                ];
 
-                $groupId = $placeholders[CPLIdPlaceholder::NAME] ?: $placeholders[PriceListIdPlaceholder::NAME];
-                $groupId = $this->defaultPriceList->getId() === $groupId
-                    ? 0
-                    : (($placeholders[CPLIdPlaceholder::NAME] ? 'cpl_' : 'pl_') . $groupId);
-                $prices[] = ['price' => (float) $value, 'group_id' => $groupId];
+                if ($this->defaultPriceList->getId() === $priceListId
+                    && $this->defaultCurrency === $placeholders[CurrencyPlaceholder::NAME]
+                    && !isset($placeholders[UnitPlaceholder::NAME])
+                ) {
+                    array_unshift($prices, ['price' => (float) $value, 'group_id' => 0]);
+                }
             }
 
             if (!empty($prices)) {

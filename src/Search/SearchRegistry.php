@@ -22,6 +22,7 @@ use Gally\Sdk\GraphQl\Response;
 class SearchRegistry
 {
     private Response $response;
+    private ?string $priceFilterUnit = null;
 
     public function getResponse(): Response
     {
@@ -31,5 +32,15 @@ class SearchRegistry
     public function setResponse(Response $response): void
     {
         $this->response = $response;
+    }
+
+    public function getPriceFilterUnit(): ?string
+    {
+        return $this->priceFilterUnit;
+    }
+
+    public function setPriceFilterUnit(string $priceFilterUnit): void
+    {
+        $this->priceFilterUnit = $priceFilterUnit;
     }
 }

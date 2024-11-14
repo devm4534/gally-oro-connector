@@ -1,6 +1,12 @@
 services:
     Gally\OroPlugin\Search\SearchRegistry: ~
 
+    Gally\OroPlugin\Decorator\SavePriceFilterUnit:
+        decorates: oro_pricing.filter.frontend_product_price
+        arguments:
+            - '@.inner'
+            - '@Gally\OroPlugin\Search\SearchRegistry'
+
     Gally\OroPlugin\Search\ContextProvider:
         arguments:
             - '@oro_website.manager'
@@ -16,6 +22,9 @@ services:
         arguments:
             - '@Gally\OroPlugin\Search\ContextProvider'
             - '@Gally\OroPlugin\Search\ExpressionVisitor'
+            - '@Gally\OroPlugin\Search\SearchRegistry'
+            - '@Gally\OroPlugin\Resolver\PriceGroupResolver'
+            - '@oro_website_search.placeholder.registry'
 
     Gally\OroPlugin\Search\Filter\SelectFilter:
         public: false
@@ -45,6 +54,14 @@ services:
             - ['setMapper', ['@oro_website_search.engine.mapper']]
         tags:
             - { name: 'oro_website_search.engine', engine_name: 'gally' }
+
+    Gally\OroPlugin\Search\CustomerPartialUpdateDriver:
+        arguments:
+            - '@oro_website_search.provider.placeholder_provider'
+            - '@oro_visibility.visibility.provider.product_visibility_provider'
+            - '@oro_entity.doctrine_helper'
+        tags:
+            - { name: 'oro_website_search.customer_partial_update_driver', engine_name: 'gally' }
 
     Gally\OroPlugin\Search\Extension\GallyDataGridExtension:
         arguments:

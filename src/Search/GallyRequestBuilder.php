@@ -14,15 +14,23 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search;
 
+use Gally\OroPlugin\Resolver\PriceGroupResolver;
 use Gally\Sdk\GraphQl\Request;
+use Oro\Bundle\PricingBundle\Placeholder\CPLIdPlaceholder;
+use Oro\Bundle\PricingBundle\Placeholder\CurrencyPlaceholder;
+use Oro\Bundle\PricingBundle\Placeholder\PriceListIdPlaceholder;
 use Oro\Bundle\SearchBundle\Query\Criteria\Criteria;
 use Oro\Bundle\SearchBundle\Query\Query;
+use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderRegistry;
 
 class GallyRequestBuilder
 {
     public function __construct(
         private ContextProvider $contextProvider,
         private ExpressionVisitor $expressionVisitor,
+        private SearchRegistry $searchRegistry,
+        private PriceGroupResolver $priceGroupResolver,
+        private PlaceholderRegistry $registry,
     ) {
     }
 
@@ -48,6 +56,7 @@ class GallyRequestBuilder
             $filters,
             $sortField,
             $sortDirection,
+            $this->getPriceGroup(),
         );
     }
 
@@ -127,5 +136,19 @@ class GallyRequestBuilder
         }
 
         return [$this->expressionVisitor->getSearchQuery(), [$filters]];
+    }
+
+    private function getPriceGroup(): string
+    {
+        $cplId = $this->registry->getPlaceholder(CPLIdPlaceholder::NAME)->getDefaultValue();
+        $plId = $this->registry->getPlaceholder(PriceListIdPlaceholder::NAME)->getDefaultValue();
+        $currency = $this->registry->getPlaceholder(CurrencyPlaceholder::NAME)->getDefaultValue();
+
+        return $this->priceGroupResolver->getGroupId(
+            (bool) $cplId,
+            (int) ($cplId ?: $plId),
+            $currency,
+            $this->searchRegistry->getPriceFilterUnit()
+        );
     }
 }

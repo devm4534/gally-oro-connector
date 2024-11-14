@@ -107,7 +107,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
             }
             $type = 'bool';
             $field = 'stock__status';
-            $value = \in_array(Product::INVENTORY_STATUS_IN_STOCK, $value, true) || \in_array(true, $value, true);
+            $value = \in_array(Product::INVENTORY_STATUS_IN_STOCK, $value, true) || \in_array(1, $value, true);
         } elseif (str_starts_with($field, 'assigned_to.') || str_starts_with($field, 'manually_added_to.')) {
             [$field, $variantId] = explode('.', $field);
             [$_, $value] = explode('_', $variantId);

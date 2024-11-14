@@ -81,6 +81,7 @@ services:
             - '@oro_config.manager'
             - '@oro_featuretoggle.checker.feature_checker'
             - '@oro_pricing.provider.website_currency_provider'
+            - '@Gally\OroPlugin\Resolver\PriceGroupResolver'
         tags:
             - { name: gally.indexer_normalizer }
 
