@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Indexer\Normalizer;
 
+use Oro\Bundle\EntityConfigBundle\Config\Id\FieldConfigId;
 use Oro\Bundle\EntityConfigBundle\Exception\RuntimeException;
 use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
@@ -43,7 +44,9 @@ class BooleanDataNormalizer extends AbstractNormalizer
                 } catch (RuntimeException) {
                     $fieldConfig = null;
                 }
-                $type = $fieldConfig ? $fieldConfig->getId()->getFieldType() : $fieldData['type'];
+                /** @var FieldConfigId $fieldConfigId */
+                $fieldConfigId = $fieldConfig?->getId();
+                $type = $fieldConfigId ? $fieldConfigId->getFieldType() : $fieldData['type'];
                 if ('boolean' === $type) {
                     $this->booleanAttributes[] = $fieldName;
                 }

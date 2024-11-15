@@ -15,7 +15,9 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Search;
 
 use Gally\Sdk\Service\SearchManager;
+use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\AbstractSearchMappingProvider;
+use Oro\Bundle\SearchBundle\Query\Criteria\Criteria;
 use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\SearchBundle\Query\Result;
 use Oro\Bundle\SearchBundle\Query\Result\Item;
@@ -39,7 +41,7 @@ class SearchEngine extends AbstractEngine
         AbstractSearchMappingProvider $mappingProvider,
         private SearchManager $searchManager,
         private GallyRequestBuilder $requestBuilder,
-        private SearchRegistry $registry,
+        private ContextProvider $contextProvider,
         private array $attributeMapping,
     ) {
         parent::__construct($eventDispatcher, $queryPlaceholderResolver, $mappingProvider);
@@ -53,19 +55,30 @@ class SearchEngine extends AbstractEngine
     protected function doSearch(Query $query, array $context = [])
     {
         $request = $this->requestBuilder->build($query, $context);
-        $response = $this->searchManager->searchProduct($request);
-        $this->registry->setResponse($response);
+        $response = $this->searchManager->search($request);
+        $this->contextProvider->setResponse($response);
 
         $results = [];
         foreach ($response->getCollection() as $item) {
             $item['id'] = (int) basename($item['id']);
 
-            foreach ($this->attributeMapping as $oroAttribute => $gallyAttribute) {
-                $item[$oroAttribute] = $item[$gallyAttribute] ?? null;
+            foreach ($query->getSelect() as $field) {
+                [$type, $name] = Criteria::explodeFieldTypeName($field);
+                $value = $item[$this->attributeMapping[$name] ?? $name] ?? null;
+
+                if ('inv_status' === $name && isset($item['stock'])) {
+                    $value = $item['stock']['status']
+                        ? Product::INVENTORY_STATUS_IN_STOCK
+                        : Product::INVENTORY_STATUS_OUT_OF_STOCK;
+                } elseif ('minimal_price' === $name && isset($item['price'])) {
+                    $value = $item['price'][0]['price'];
+                }
+
+                $item[$name] = $value;
             }
 
             $results[] = new Item(
-                'product', // Todo manage other entity
+                $request->getMetadata()->getEntity(),
                 $item['id'],
                 $item['url'] ?? null,
                 $this->mapper->mapSelectedData($query, $item),

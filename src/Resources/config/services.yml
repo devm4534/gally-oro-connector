@@ -1,10 +1,6 @@
 parameters:
     gally_config.entity_mapping:
         contentnode: 'category'
-    gally_config.attribute_mapping:
-        system_entity_id: id
-        names: name
-        descriptions: description
     gally_config.attribute_type_mapping:
         text: !php/const \Gally\Sdk\Entity\SourceField::TYPE_TEXT
         string: !php/const \Gally\Sdk\Entity\SourceField::TYPE_TEXT
@@ -15,6 +11,27 @@ parameters:
         boolean: !php/const \Gally\Sdk\Entity\SourceField::TYPE_BOOLEAN
         enum: !php/const \Gally\Sdk\Entity\SourceField::TYPE_SELECT
         multiEnum: !php/const \Gally\Sdk\Entity\SourceField::TYPE_SELECT
+    gally_config.attribute_mapping:
+        system_entity_id: id
+        names: name
+        descriptions: description
+    gally_config.oro_system_attribute:
+        - status
+        - assigned_to
+        - manually_added_to
+        - category_path
+        - category_paths
+        - is_variant
+        - is_visible_by_default
+        - visibility_anonymous
+        - visibility_new
+        - visible_for_customer
+        - hidden_for_customer
+    gally_config.field_to_skip:
+        - visibility_customer.CUSTOMER_ID  # Field managed manually @see src/Resources/config/oro/website_search.yml
+        - inv_status                       # Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
+        - inv_qty                          # Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
+        - brand_LOCALIZATION_ID            # Brand field is managed as a select
 
 services:
     Gally\OroPlugin\Placeholder\PlaceholderDecorator:

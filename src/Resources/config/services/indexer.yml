@@ -23,8 +23,10 @@ services:
             - '@translator'
             - '@oro_locale.settings'
             - '%gally_config.entity_mapping%'
-            - '%gally_config.attribute_mapping%'
             - '%gally_config.attribute_type_mapping%'
+            - '%gally_config.attribute_mapping%'
+            - '%gally_config.oro_system_attribute%'
+            - '%gally_config.field_to_skip%'
         tags:
             - { name: 'gally.dataprovider', entity: 'sourceField' }
 
@@ -66,7 +68,6 @@ services:
 
     Gally\OroPlugin\Indexer\EventListener\WebsiteSearchChildDataIndexerListener:
         arguments:
-            - '@doctrine'
             - '@oro_website_search.engine.parameters'
         tags:
             - { name: kernel.event_listener, event: oro_website_search.event.index_entity.product, method: onWebsiteSearchIndex, priority: -255 }
@@ -120,12 +121,7 @@ services:
             - '@oro_website_search.placeholder_decorator'
             - '@oro_ui.html_tag_helper'
             - '@oro_website_search.helper.placeholder_helper'
-            - '@oro_entity.doctrine_helper'
-            - '@oro_locale.helper.localization'
             - '@oro_website_search.manager.website_context_manager'
-            - '@oro_config.manager'
-            - '@oro_website_search.provider.search_mapping'
-            - '@doctrine.orm.entity_manager'
             - '%gally_config.attribute_mapping%'
             - !tagged_iterator { tag: 'gally.indexer_normalizer' }
 

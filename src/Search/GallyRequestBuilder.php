@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Search;
 
 use Gally\OroPlugin\Resolver\PriceGroupResolver;
+use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\GraphQl\Request;
 use Oro\Bundle\PricingBundle\Placeholder\CPLIdPlaceholder;
 use Oro\Bundle\PricingBundle\Placeholder\CurrencyPlaceholder;
@@ -28,26 +29,27 @@ class GallyRequestBuilder
     public function __construct(
         private ContextProvider $contextProvider,
         private ExpressionVisitor $expressionVisitor,
-        private SearchRegistry $searchRegistry,
         private PriceGroupResolver $priceGroupResolver,
         private PlaceholderRegistry $registry,
+        private array $attributeMapping,
     ) {
     }
 
     public function build(Query $query, array $context): Request
     {
-        if (!$this->isProductQuery($query)) {
-            // Todo !
-            throw new \Exception('Todo manage this');
-        }
+        $from = $query->getFrom();
+        $entityCode = str_replace('website_search_', '', str_replace('oro_', '', $from[0]));
+        $metadata = new Metadata($entityCode);
 
         [$currentPage, $pageSize] = $this->getPaginationInfo($query);
         [$sortField, $sortDirection] = $this->getSortInfo($query);
-        [$searchQuery, $filters] = $this->getFilters($query);
+        [$searchQuery, $filters] = $this->getFilters($query, $metadata);
         $currentContentNode = $this->contextProvider->getCurrentContentNode();
 
         return new Request(
             $this->contextProvider->getCurrentLocalizedCatalog(),
+            $metadata,
+            $this->contextProvider->isAutocompleteContext(),
             $this->getSelectedFields($query),
             $currentPage,
             $pageSize,
@@ -60,30 +62,16 @@ class GallyRequestBuilder
         );
     }
 
-    private function isProductQuery(Query $query): bool
-    {
-        $from = $query->getFrom();
-
-        return 1 === \count($from) && str_starts_with($from[0], 'oro_product');
-    }
-
     private function getSelectedFields(Query $query): array
     {
-        // Todo Clean field name
         $fields = $query->getSelect();
         $selectedFields = empty($fields) ? [] : ['id'];
         foreach ($fields as $field) {
             [$type, $name] = Criteria::explodeFieldTypeName($field);
-            if ('names' === $name) {
-                $name = 'name';
-            }
-            if ('system_entity_id' === $name) {
-                $name = 'id';
-            }
-            if ('inv_status' == $name) { // todo
+            if (\in_array($name, ['minimal_price', 'inv_status'], true)) {
                 continue;
             }
-            $selectedFields[] = $name;
+            $selectedFields[] = $this->attributeMapping[$name] ?? $name;
         }
 
         return $selectedFields;
@@ -125,30 +113,36 @@ class GallyRequestBuilder
     }
 
     /**
-     * @return array{0: ?string, 1: ?string, 2: array}
+     * @return array{0: ?string, 1: array}
      */
-    private function getFilters(Query $query): array
+    private function getFilters(Query $query, Metadata $metadata): array
     {
         $filters = [];
 
         if ($expression = $query->getCriteria()->getWhereExpression()) {
-            $filters = $this->expressionVisitor->dispatch($expression);
+            $filters = $this->expressionVisitor->dispatch($expression, 'product' === $metadata->getEntity());
         }
 
-        return [$this->expressionVisitor->getSearchQuery(), [$filters]];
+        return [$this->expressionVisitor->getSearchQuery(), array_filter([$filters])];
     }
 
     private function getPriceGroup(): string
     {
-        $cplId = $this->registry->getPlaceholder(CPLIdPlaceholder::NAME)->getDefaultValue();
-        $plId = $this->registry->getPlaceholder(PriceListIdPlaceholder::NAME)->getDefaultValue();
-        $currency = $this->registry->getPlaceholder(CurrencyPlaceholder::NAME)->getDefaultValue();
+        /** @var CPLIdPlaceholder $cplIdPlaceholder */
+        $cplIdPlaceholder = $this->registry->getPlaceholder(CPLIdPlaceholder::NAME);
+        $cplId = $cplIdPlaceholder->getDefaultValue();
+        /** @var PriceListIdPlaceholder $plIdPlaceholder */
+        $plIdPlaceholder = $this->registry->getPlaceholder(PriceListIdPlaceholder::NAME);
+        $plId = $plIdPlaceholder->getDefaultValue();
+        /** @var CurrencyPlaceholder $currencyPlaceholder */
+        $currencyPlaceholder = $this->registry->getPlaceholder(CurrencyPlaceholder::NAME);
+        $currency = $currencyPlaceholder->getDefaultValue();
 
         return $this->priceGroupResolver->getGroupId(
             (bool) $cplId,
             (int) ($cplId ?: $plId),
             $currency,
-            $this->searchRegistry->getPriceFilterUnit()
+            $this->contextProvider->getPriceFilterUnit()
         );
     }
 }

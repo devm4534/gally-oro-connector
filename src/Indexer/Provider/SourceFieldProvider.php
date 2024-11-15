@@ -19,6 +19,7 @@ use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
+use Oro\Bundle\EntityConfigBundle\Config\Id\FieldConfigId;
 use Oro\Bundle\EntityConfigBundle\Exception\RuntimeException;
 use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
@@ -35,29 +36,6 @@ class SourceFieldProvider implements ProviderInterface
     /** @var LocalizedCatalog[] */
     private array $localizedCatalogs = [];
 
-    /** @var string[] */
-    // todo conf ??
-    private array $fieldToSkip = [
-        'visibility_customer.CUSTOMER_ID', // Field managed manually @see src/Resources/config/oro/website_search.yml
-        'inv_status', // Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
-        'inv_qty', // Field managed manually @see oro/src/packages/GallyPlugin/src/Engine/IndexDataProvider.php
-        'brand_LOCALIZATION_ID', // Brand field is managed as a select
-    ];
-
-    private array $oroSystemAttribute = [ // todo conf
-        'status',
-        'assigned_to',
-        'manually_added_to',
-        'category_path',
-        'category_paths',
-        'is_variant',
-        'is_visible_by_default',
-        'visibility_anonymous',
-        'visibility_new',
-        'visible_for_customer',
-        'hidden_for_customer',
-    ];
-
     public function __construct(
         private SearchMappingProvider $mappingProvider,
         private EntityAliasResolver $entityAliasResolver,
@@ -67,8 +45,10 @@ class SourceFieldProvider implements ProviderInterface
         private TranslatorInterface $translator,
         private LocaleSettings $localeSettings,
         private array $entityCodeMapping,
-        private array $attributeMapping,
         private array $typeMapping,
+        private array $attributeMapping,
+        private array $oroSystemAttribute,
+        private array $fieldToSkip,
     ) {
         foreach ($this->catalogProvider->provide() as $localizedCatalog) {
             $this->localizedCatalogs[] = $localizedCatalog;
@@ -106,9 +86,11 @@ class SourceFieldProvider implements ProviderInterface
                     $labelKey = $fieldName;
                 }
 
+                /** @var FieldConfigId $fieldConfigId */
+                $fieldConfigId = $fieldConfig?->getId();
                 $fieldType = $this->getGallyType(
                     $fieldData['name'],
-                    $fieldConfig ? $fieldConfig->getId()->getFieldType() : $fieldData['type']
+                    $fieldConfigId ? $fieldConfigId->getFieldType() : $fieldData['type']
                 );
                 $defaultLabel = $this->translator->trans($labelKey, [], null, $this->getDefaultLocale());
 
@@ -122,7 +104,7 @@ class SourceFieldProvider implements ProviderInterface
                     $fieldType,
                     $defaultLabel,
                     $this->getLabels($labelKey, $defaultLabel),
-                    \in_array($fieldName, $this->oroSystemAttribute, true)
+                    \in_array($fieldName, $this->oroSystemAttribute, true) || 'product' !== $metadata->getEntity()
                 );
             }
         }

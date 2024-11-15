@@ -99,7 +99,7 @@ class SourceFieldOptionProvider implements ProviderInterface
     }
 
     /**
-     * @return Label
+     * @return Label[][]
      */
     private function getLabels(string $objectClass): array
     {

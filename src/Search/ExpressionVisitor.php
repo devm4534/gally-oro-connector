@@ -34,23 +34,26 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
     private ?string $searchQuery = null;
 
-    public function dispatch(Expression $expr, bool $isMainQuery = true)
+    public function dispatch(Expression $expr, bool $isStitchedQuery = false, bool $isMainQuery = true)
     {
         // Use main query parameter to flatten main and expression.
         switch (true) {
+            case $expr instanceof CompositeExpression:
+                return $this->walkCompositeExpression($expr, $isStitchedQuery, $isMainQuery);
             case $expr instanceof Comparison:
-                return $this->walkComparison($expr);
+                return $this->walkComparison($expr, $isStitchedQuery);
             case $expr instanceof Value:
                 return $this->walkValue($expr);
-            case $expr instanceof CompositeExpression:
-                return $this->walkCompositeExpression($expr, $isMainQuery);
             default:
                 throw new \RuntimeException('Unknown Expression ' . $expr::class);
         }
     }
 
-    public function walkCompositeExpression(CompositeExpression $expr, bool $isMainQuery = true): array
-    {
+    public function walkCompositeExpression(
+        CompositeExpression $expr,
+        bool $isStitchedQuery = false,
+        bool $isMainQuery = true
+    ): array {
         $type = '_must';
         if (CompositeExpression::TYPE_AND !== $expr->getType()) {
             $isMainQuery = false;
@@ -59,14 +62,14 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
         $filters = [];
         foreach ($expr->getExpressionList() as $expression) {
-            $filter = $this->dispatch($expression, $isMainQuery);
+            $filter = $this->dispatch($expression, $isStitchedQuery, $isMainQuery);
             if ($filter) {
                 if ($isMainQuery) {
                     foreach ($filter as $field => $data) {
                         if (!\array_key_exists($field, $filters)) {
                             $filters[$field] = $data;
                         } else {
-                            $filters['boolFilter'] = [
+                            $filters[Request::FILTER_TYPE_BOOLEAN] = [
                                 $type => [
                                     [$field => $filters[$field]],
                                     [$field => $data],
@@ -83,13 +86,13 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
         return $isMainQuery
             ? $filters
-            : ['boolFilter' => [$type => $filters]];
+            : [Request::FILTER_TYPE_BOOLEAN => [$type => $filters]];
     }
 
-    public function walkComparison(Comparison $comparison): ?array
+    public function walkComparison(Comparison $comparison, bool $isStitchedQuery = false): ?array
     {
         [$type, $field] = $this->explodeFieldTypeName($comparison->getField());
-        $value = $this->dispatch($comparison->getValue());
+        $value = $this->dispatch($comparison->getValue(), $isStitchedQuery);
         $operator = $this->getGallyOperator($comparison->getOperator());
         $hasNegation = str_starts_with($comparison->getOperator(), 'NOT');
 
@@ -121,13 +124,13 @@ class ExpressionVisitor extends BaseExpressionVisitor
                 fn ($value) => [$field => [Request::FILTER_OPERATOR_EQ => $value]],
                 $value
             );
-            $field = 'boolFilter';
+            $field = Request::FILTER_TYPE_BOOLEAN;
             $operator = '_should';
         } elseif (str_starts_with($field, 'visibility_customer.')) {
             [$field, $customerId] = explode('.', $field);
             $type = 'text';
             if (Request::FILTER_OPERATOR_EXISTS === $operator) {
-                $field = 'boolFilter';
+                $field = Request::FILTER_TYPE_BOOLEAN;
                 $operator = '_must';
                 $value = [
                     ['visible_for_customer' => [Request::FILTER_OPERATOR_EQ => $customerId]],
@@ -151,10 +154,12 @@ class ExpressionVisitor extends BaseExpressionVisitor
             }
         }
 
-        $rule = [$field => [$operator => $this->enforceValueType($type, $value)]];
+        $rule = ($isStitchedQuery || Request::FILTER_TYPE_BOOLEAN === $field)
+            ? [$field => [$operator => $this->enforceValueType($type, $value)]]
+            : [Request::getFilterTypeByOperator($operator) => ['field' => $field, $operator => (string) $value]];
 
         return $hasNegation
-            ? ['boolFilter' => ['_not' => [$rule]]]
+            ? [Request::FILTER_TYPE_BOOLEAN => ['_not' => [$rule]]]
             : $rule;
     }
 

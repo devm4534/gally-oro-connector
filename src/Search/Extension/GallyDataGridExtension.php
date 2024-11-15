@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search\Extension;
 
+use Gally\OroPlugin\Search\ContextProvider;
 use Gally\OroPlugin\Search\SearchEngine;
-use Gally\OroPlugin\Search\SearchRegistry;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
 use Gally\Sdk\GraphQl\Request;
@@ -36,7 +36,7 @@ class GallyDataGridExtension extends AbstractExtension
     public function __construct(
         private EngineParameters $engineParameters,
         private SearchManager $searchManager,
-        private SearchRegistry $registry,
+        private ContextProvider $contextProvider,
     ) {
     }
 
@@ -175,7 +175,7 @@ class GallyDataGridExtension extends AbstractExtension
 
     private function addFiltersFromGallyResult(DatagridConfiguration $config): void
     {
-        $gallyFilters = $this->registry->getResponse()->getAggregations();
+        $gallyFilters = $this->contextProvider->getResponse()->getAggregations();
         $currentFilters = $config->offsetGetByPath('[filters][columns]') ?? [];
         $filters = [];
 
@@ -213,8 +213,8 @@ class GallyDataGridExtension extends AbstractExtension
 
     private function setAppliedSortingFromGallyResult(DatagridConfiguration $config): void
     {
-        $sortField = $this->registry->getResponse()->getSortField();
-        $sortDirection = $this->registry->getResponse()->getSortDirection();
+        $sortField = $this->contextProvider->getResponse()->getSortField();
+        $sortDirection = $this->contextProvider->getResponse()->getSortDirection();
 
         if (Request::SORT_RELEVANCE_FIELD !== $sortField) {
             $config->offsetSetByPath(

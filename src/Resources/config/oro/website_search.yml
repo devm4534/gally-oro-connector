@@ -13,6 +13,10 @@ Oro\Bundle\WebCatalogBundle\Entity\ContentNode:
           type: text
         - name: description
           type: text
+        - name: tree
+          type: text
+        - name: url
+          type: text
 
 Oro\Bundle\ProductBundle\Entity\Brand:
     fields:
@@ -23,6 +27,10 @@ Oro\Bundle\ProductBundle\Entity\Product:
     fields:
         - name: inv_qty
           type: decimal
+        - name: category_paths
+          type: text
+        - name: category_paths.CATEGORY_PATH
+          type: text
         - name: visible_for_customer
           type: text
         - name: hidden_for_customer

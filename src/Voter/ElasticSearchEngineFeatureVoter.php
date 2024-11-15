@@ -23,8 +23,6 @@ use Oro\Bundle\SearchBundle\Engine\EngineParameters;
  */
 class ElasticSearchEngineFeatureVoter implements VoterInterface
 {
-    private const ELASTIC_SEARCH_ENGINE_FEATURE_KEY = 'elastic_search_engine';
-
     private EngineParameters $engineParametersBag;
 
     public function __construct(EngineParameters $engineParametersBag)

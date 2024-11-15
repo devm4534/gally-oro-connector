@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Indexer\EventListener;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
 use Gally\OroPlugin\Indexer\Indexer;
 use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
@@ -32,10 +30,7 @@ class WebsiteSearchChildDataIndexerListener implements WebsiteSearchProductIndex
 {
     use ContextTrait;
 
-    private EntityManagerInterface $entityManager;
-
     public function __construct(
-        private ManagerRegistry $doctrine,
         private EngineParameters $engineParameters,
     ) {
     }
@@ -53,7 +48,7 @@ class WebsiteSearchChildDataIndexerListener implements WebsiteSearchProductIndex
         /** @var Localization $localization */
         $localization = $event->getContext()[Indexer::CONTEXT_LOCALIZATION];
 
-        /** @var Product $product */
+        /** @var Product[] $products */
         $products = $event->getEntities();
         foreach ($products as $product) {
             if ($product->isConfigurable()) {

@@ -80,14 +80,18 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
                     '/',
                     str_replace($root->getMaterializedPath(), (string) $root->getId(), $node->getMaterializedPath())
                 );
-                $name = $this->localizationHelper->getLocalizedValue($node->getTitles(), $localization)->getString();
+                $name = $this->localizationHelper->getLocalizedValue($node->getTitles(), $localization);
+                $url = $this->localizationHelper->getLocalizedValue($node->getLocalizedUrls(), $localization);
 
                 if ($parentId) {
                     $event->addField($nodeId, 'parentId', $parentId);
                 }
+
                 $event->addField($nodeId, 'level', $level);
                 $event->addField($nodeId, 'path', $path);
-                $event->addField($nodeId, 'name', $name);
+                $event->addField($nodeId, 'name', $name?->getString());
+                $event->addField($nodeId, 'url', $url?->getText());
+                $event->addField($nodeId, 'tree', $this->getTree($root, $node, $localization));
             }
         }
     }
@@ -100,5 +104,15 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
         }
 
         return null;
+    }
+
+    private function getTree(ContentNode $root, ContentNode $node, Localization $localization): array
+    {
+        return $root->getId() == $node->getId()
+            ? []
+            : array_merge(
+                $this->getTree($root, $node->getParentNode(), $localization),
+                [$this->localizationHelper->getLocalizedValue($node->getTitles(), $localization)?->getString()],
+            );
     }
 }

@@ -126,15 +126,14 @@ class Indexer extends AbstractIndexer
         return $this->localizedCatalogByWebsite[$catalogCode]; // todo if undefined ??
     }
 
-    public function delete($entity, array $context = [])
+    public function delete($entity, array $context = []): bool
     {
-        $toto = 'blop';
         // TODO: Implement delete() method.
+        return true;
     }
 
     public function resetIndex($class = null, array $context = [])
     {
-        $toto = 'blop';
         // TODO: Implement resetIndex() method.
     }
 
@@ -155,16 +154,16 @@ class Indexer extends AbstractIndexer
         return array_keys($entitiesData);
     }
 
-    protected function savePartialIndexData($entityClass, array $entitiesData, $entityAliasTemp, array $context)
+    protected function savePartialIndexData($entityClass, array $entitiesData, $entityAliasTemp, array $context): array
     {
-        $toto = 'blop';
         // TODO: Implement savePartialIndexData() method.
+        return [];
     }
 
-    protected function getIndexedEntities($entityClass, array $entities, array $context)
+    protected function getIndexedEntities($entityClass, array $entities, array $context): array
     {
-        $toto = 'blop';
         // TODO: Implement getIndexedEntities() method.
+        return [];
     }
 
     protected function renameIndex($temporaryAlias, $currentAlias): void

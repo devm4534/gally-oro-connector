@@ -50,12 +50,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         private PlaceholderInterface $placeholder,
         HtmlTagHelper $htmlTagHelper,
         PlaceholderHelper $placeholderHelper,
-        private DoctrineHelper $doctrineHelper,
-        private LocalizationHelper $localizationHelper,
         private WebsiteContextManager $websiteContextManager,
-        private ConfigManager $configManager,
-        private SearchMappingProvider $mappingProvider,
-        private EntityManagerInterface $entityManager,
         private array $attributeMapping,
         private iterable $normalizers,
     ) {

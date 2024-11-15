@@ -1,18 +1,17 @@
 services:
-    Gally\OroPlugin\Search\SearchRegistry: ~
+    Gally\OroPlugin\Search\ContextProvider:
+        arguments:
+            - '@oro_config.manager'
+            - '@oro_website.manager'
+            - '@oro_locale.helper.localization'
+            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
+            - '@oro_web_catalog.request_web_content_variant_provider'
 
     Gally\OroPlugin\Decorator\SavePriceFilterUnit:
         decorates: oro_pricing.filter.frontend_product_price
         arguments:
             - '@.inner'
-            - '@Gally\OroPlugin\Search\SearchRegistry'
-
-    Gally\OroPlugin\Search\ContextProvider:
-        arguments:
-            - '@oro_website.manager'
-            - '@oro_locale.helper.localization'
-            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
-            - '@oro_web_catalog.request_web_content_variant_provider'
+            - '@Gally\OroPlugin\Search\ContextProvider'
 
     Gally\OroPlugin\Search\ExpressionVisitor:
         arguments:
@@ -22,9 +21,9 @@ services:
         arguments:
             - '@Gally\OroPlugin\Search\ContextProvider'
             - '@Gally\OroPlugin\Search\ExpressionVisitor'
-            - '@Gally\OroPlugin\Search\SearchRegistry'
             - '@Gally\OroPlugin\Resolver\PriceGroupResolver'
             - '@oro_website_search.placeholder.registry'
+            - '%gally_config.attribute_mapping%'
 
     Gally\OroPlugin\Search\Filter\SelectFilter:
         public: false
@@ -48,7 +47,7 @@ services:
             #            - '@oro_website_elastic_search.request_builder.registry'
             - '@Gally\Sdk\Service\SearchManager'
             - '@Gally\OroPlugin\Search\GallyRequestBuilder'
-            - '@Gally\OroPlugin\Search\SearchRegistry'
+            - '@Gally\OroPlugin\Search\ContextProvider'
             - '%gally_config.attribute_mapping%'
         calls:
             - ['setMapper', ['@oro_website_search.engine.mapper']]
@@ -67,6 +66,29 @@ services:
         arguments:
             - '@oro_website_search.engine.parameters'
             - '@Gally\Sdk\Service\SearchManager'
-            - '@Gally\OroPlugin\Search\SearchRegistry'
+            - '@Gally\OroPlugin\Search\ContextProvider'
         tags:
             - { name: oro_datagrid.extension }
+
+    Gally\OroPlugin\Decorator\DisableNativeCategoryAutocomplete:
+        decorates: oro_catalog.event_listener.search.add_category_to_product_autocomplete
+        arguments:
+            - '@router'
+            - '@oro_ui.twig.html_tag'
+            - '@oro_config.manager'
+            - '@.inner'
+            - '@oro_website_search.engine.parameters'
+
+    Gally\OroPlugin\Search\Autocomplete\Product:
+        arguments:
+            - '@Gally\OroPlugin\Search\ContextProvider'
+        tags:
+            - { name: kernel.event_listener, event: Oro\Bundle\ProductBundle\Event\ProcessAutocompleteQueryEvent, method: onProcessAutocompleteQuery }
+
+    Gally\OroPlugin\Search\Autocomplete\Category:
+        arguments:
+            - '@oro_website_search.query_factory'
+            - '@oro_ui.twig.html_tag'
+            - '@oro_config.manager'
+        tags:
+            - { name: kernel.event_listener, event: Oro\Bundle\ProductBundle\Event\ProcessAutocompleteDataEvent, method: onProcessAutocompleteData }

@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Decorator;
 
-use Gally\OroPlugin\Search\SearchRegistry;
+use Gally\OroPlugin\Search\ContextProvider;
 use Oro\Bundle\FilterBundle\Datasource\FilterDatasourceAdapterInterface;
 use Oro\Bundle\FilterBundle\Filter\FilterInterface;
 use Oro\Bundle\SearchBundle\Datagrid\Filter\SearchNumberFilter;
@@ -23,7 +23,7 @@ class SavePriceFilterUnit implements FilterInterface
 {
     public function __construct(
         private SearchNumberFilter $decorated,
-        private SearchRegistry $searchRegistry,
+        private ContextProvider $contextProvider,
     ) {
     }
 
@@ -52,12 +52,13 @@ class SavePriceFilterUnit implements FilterInterface
         return $this->decorated->resolveOptions();
     }
 
-    public function apply(FilterDatasourceAdapterInterface $ds, $data): void
+    public function apply(FilterDatasourceAdapterInterface $ds, $data): bool
     {
         if (isset($data['unit'])) {
-            $this->searchRegistry->setPriceFilterUnit($data['unit']);
+            $this->contextProvider->setPriceFilterUnit($data['unit']);
         }
-        $this->decorated->apply($ds, $data);
+
+        return $this->decorated->apply($ds, $data);
     }
 
     public function prepareData(array $data): array
@@ -65,9 +66,11 @@ class SavePriceFilterUnit implements FilterInterface
         return $this->decorated->prepareData($data);
     }
 
-    public function setFilterState($state): void
+    public function setFilterState($state): self
     {
         $this->decorated->setFilterState($state);
+
+        return $this;
     }
 
     public function getFilterState()

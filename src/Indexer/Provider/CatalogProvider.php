@@ -38,7 +38,9 @@ class CatalogProvider implements ProviderInterface
         AbstractWebsiteLocalizationProvider $websiteLocalizationProvider,
         private WebsiteCurrencyProvider $currencyProvider,
     ) {
-        $this->websiteRepository = $entityManager->getRepository(Website::class);
+        /** @var WebsiteRepository $websiteRepository */
+        $websiteRepository = $entityManager->getRepository(Website::class);
+        $this->websiteRepository = $websiteRepository;
         $this->websiteLocalizationProvider = $websiteLocalizationProvider;
     }
 
