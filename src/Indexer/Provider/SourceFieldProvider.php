@@ -24,7 +24,6 @@ use Oro\Bundle\EntityConfigBundle\Exception\RuntimeException;
 use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
-use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderRegistry;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -63,7 +62,7 @@ class SourceFieldProvider implements ProviderInterface
     public function provide(): iterable
     {
         foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
-            if (SavedSearch::class === $entityClass) {
+            if ('\Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
                 continue;
             }

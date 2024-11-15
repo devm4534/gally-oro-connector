@@ -23,7 +23,6 @@ use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\WebsiteBundle\Provider\AbstractWebsiteLocalizationProvider;
-use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 use Oro\Bundle\WebsiteSearchBundle\Engine\AbstractIndexer;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexerInputValidator;
@@ -69,7 +68,7 @@ class Indexer extends AbstractIndexer
 
     protected function reindexEntityClass($entityClass, array $context)
     {
-        if (SavedSearch::class === $entityClass) {
+        if ('\Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
             // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
             return 0;
         }

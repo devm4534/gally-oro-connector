@@ -27,7 +27,6 @@ use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\WebsiteBundle\Provider\AbstractWebsiteLocalizationProvider;
-use Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch;
 
 /**
  * Gally Catalog data provider.
@@ -61,7 +60,7 @@ class SourceFieldOptionProvider implements ProviderInterface
     public function provide(): iterable
     {
         foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
-            if (SavedSearch::class === $entityClass) {
+            if ('\Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
                 continue;
             }

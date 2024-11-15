@@ -16,7 +16,6 @@ namespace Gally\OroPlugin\Indexer\EventListener;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Gally\OroPlugin\Indexer\Indexer;
-use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
 use Oro\Bundle\ProductBundle\EventListener\WebsiteSearchProductIndexerListenerInterface;
@@ -46,7 +45,7 @@ class WebsiteSearchWebCatalogIndexerListener implements WebsiteSearchProductInde
 
     public function onWebsiteSearchIndex(IndexEntityEvent $event): void
     {
-        if (ElasticSearch::ENGINE_NAME === $this->engineParameters->getEngineName()) {
+        if ('elastic_search' === $this->engineParameters->getEngineName()) {
             return;
         }
 

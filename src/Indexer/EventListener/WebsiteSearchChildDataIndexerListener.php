@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Indexer\EventListener;
 
 use Gally\OroPlugin\Indexer\Indexer;
-use Oro\Bundle\ElasticSearchBundle\Engine\ElasticSearch;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\ProductBundle\EventListener\WebsiteSearchProductIndexerListenerInterface;
@@ -37,7 +36,7 @@ class WebsiteSearchChildDataIndexerListener implements WebsiteSearchProductIndex
 
     public function onWebsiteSearchIndex(IndexEntityEvent $event): void
     {
-        if (ElasticSearch::ENGINE_NAME === $this->engineParameters->getEngineName()) {
+        if ('elastic_search' === $this->engineParameters->getEngineName()) {
             return;
         }
 
