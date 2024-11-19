@@ -15,6 +15,7 @@ parameters:
         system_entity_id: id
         names: name
         descriptions: description
+        type: oro_type
     gally_config.oro_system_attribute:
         - status
         - assigned_to
