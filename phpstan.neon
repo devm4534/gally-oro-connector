@@ -6,9 +6,5 @@ parameters:
         - src
 
     excludePaths:
-        # Makes PHPStan crash
-        - 'src/DependencyInjection/Configuration.php'
-
         # Test dependencies
         - 'tests/Application/**/**.php'
-

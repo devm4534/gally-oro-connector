@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Indexer\EventListener;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Gally\OroPlugin\Search\SearchEngine;
 use Oro\Bundle\InventoryBundle\Entity\InventoryLevel;
 use Oro\Bundle\ProductBundle\EventListener\WebsiteSearchProductIndexerListenerInterface;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters;
@@ -38,7 +39,7 @@ class WebsiteSearchInventoryLevelIndexerListener implements WebsiteSearchProduct
 
     public function onWebsiteSearchIndex(IndexEntityEvent $event): void
     {
-        if ('elastic_search' === $this->engineParameters->getEngineName()) {
+        if (SearchEngine::ENGINE_NAME !== $this->engineParameters->getEngineName()) {
             return;
         }
 

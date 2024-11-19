@@ -14,14 +14,9 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Indexer;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Gally\OroPlugin\Indexer\Normalizer\AbstractNormalizer;
-use Oro\Bundle\ConfigBundle\Config\ConfigManager;
-use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
-use Oro\Bundle\LocaleBundle\Helper\LocalizationHelper;
-use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
 use Oro\Bundle\WebsiteSearchBundle\Engine\Context\ContextTrait;
 use Oro\Bundle\WebsiteSearchBundle\Engine\IndexDataProvider as BaseIndexDataProvider;

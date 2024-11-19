@@ -62,7 +62,7 @@ class SourceFieldProvider implements ProviderInterface
     public function provide(): iterable
     {
         foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
-            if ('\Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
+            if ('Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
                 continue;
             }

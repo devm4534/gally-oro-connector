@@ -75,6 +75,9 @@ class ExpressionVisitor extends BaseExpressionVisitor
                                     [$field => $data],
                                 ],
                             ];
+                            if (Request::FILTER_TYPE_BOOLEAN !== $field) {
+                                unset($filters[$field]);
+                            }
                         }
                     }
                 } else {
@@ -94,7 +97,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
         [$type, $field] = $this->explodeFieldTypeName($comparison->getField());
         $value = $this->dispatch($comparison->getValue(), $isStitchedQuery);
         $operator = $this->getGallyOperator($comparison->getOperator());
-        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT');
+        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT') || '<>' === $comparison->getOperator();
 
         if ('all_text' === $field) {
             $this->searchQuery = $value;
@@ -114,6 +117,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
         } elseif (str_starts_with($field, 'assigned_to.') || str_starts_with($field, 'manually_added_to.')) {
             [$field, $variantId] = explode('.', $field);
             [$_, $value] = explode('_', $variantId);
+            $operator = Request::FILTER_OPERATOR_IN;
         } elseif (str_starts_with($field, 'category_paths.')) {
             [$field, $value] = explode('.', $field);
             $type = 'text';
@@ -121,7 +125,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
         } elseif ('category__id' === $field && Request::FILTER_OPERATOR_IN === $operator) {
             // Category filter do not support in operator
             $value = array_map(
-                fn ($value) => [$field => [Request::FILTER_OPERATOR_EQ => $value]],
+                fn ($value) => $this->dispatch(new Comparison($field, '=', $value), $isStitchedQuery),
                 $value
             );
             $field = Request::FILTER_TYPE_BOOLEAN;
@@ -131,10 +135,10 @@ class ExpressionVisitor extends BaseExpressionVisitor
             $type = 'text';
             if (Request::FILTER_OPERATOR_EXISTS === $operator) {
                 $field = Request::FILTER_TYPE_BOOLEAN;
-                $operator = '_must';
+                $operator = '_should';
                 $value = [
-                    ['visible_for_customer' => [Request::FILTER_OPERATOR_EQ => $customerId]],
-                    ['hidden_for_customer' => [Request::FILTER_OPERATOR_EQ => $customerId]],
+                    $this->dispatch(new Comparison('visible_for_customer', '=', $customerId), $isStitchedQuery),
+                    $this->dispatch(new Comparison('hidden_for_customer', '=', $customerId), $isStitchedQuery),
                 ];
             } elseif (Request::FILTER_OPERATOR_EQ == $operator) {
                 $field = BaseVisibilityResolved::VISIBILITY_HIDDEN === $value
@@ -152,11 +156,18 @@ class ExpressionVisitor extends BaseExpressionVisitor
                 $operator = Request::FILTER_OPERATOR_EQ;
                 $value = \is_array($value) ? reset($value) : $value;
             }
+
+            $value = $isStitchedQuery ? $value : ($value ? 'true' : 'false');
         }
 
         $rule = ($isStitchedQuery || Request::FILTER_TYPE_BOOLEAN === $field)
             ? [$field => [$operator => $this->enforceValueType($type, $value)]]
-            : [Request::getFilterTypeByOperator($operator) => ['field' => $field, $operator => (string) $value]];
+            : [
+                Request::getFilterTypeByOperator($operator) => [
+                    'field' => $field,
+                    $operator => $this->enforceValueType('text', $value),
+                ],
+            ];
 
         return $hasNegation
             ? [Request::FILTER_TYPE_BOOLEAN => ['_not' => [$rule]]]

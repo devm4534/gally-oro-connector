@@ -68,7 +68,7 @@ class Indexer extends AbstractIndexer
 
     protected function reindexEntityClass($entityClass, array $context)
     {
-        if ('\Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
+        if ('Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
             // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
             return 0;
         }

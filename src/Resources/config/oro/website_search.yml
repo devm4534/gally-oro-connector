@@ -35,8 +35,3 @@ Oro\Bundle\ProductBundle\Entity\Product:
           type: text
         - name: hidden_for_customer
           type: text
-
-Oro\Bundle\WebsiteSearchSuggestionBundle\Entity\Suggestion:
-    fields:
-        - name: id
-          type: integer
