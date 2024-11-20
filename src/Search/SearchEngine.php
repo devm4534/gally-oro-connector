@@ -82,7 +82,7 @@ class SearchEngine extends AbstractEngine
                 $item['id'],
                 $item['url'] ?? null,
                 $this->mapper->mapSelectedData($query, $item),
-                $this->mappingProvider->getEntityConfig('product')
+                $this->mappingProvider->getEntityConfig($request->getMetadata()->getEntity())
             );
         }
 

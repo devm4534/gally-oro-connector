@@ -122,15 +122,15 @@ class ExpressionVisitorTest extends WebTestCase
             ['equalFilter' => ['field' => 'hidden_for_customer', 'eq' => '14']],
         ];
         yield [
-            new Comparison('price__price', '>=', 100),
+            new Comparison('decimal.price__price', '>=', '100'),
             ['rangeFilter' => ['field' => 'price__price', 'gte' => '100']],
         ];
         yield [
             new CompositeExpression(
                 'AND',
                 [
-                    new Comparison('price__price', '>=', 100),
-                    new Comparison('price__price', '<=', 200),
+                    new Comparison('decimal.price__price', '>=', '100'),
+                    new Comparison('decimal.price__price', '<=', '200'),
                 ]
             ),
             [
@@ -326,22 +326,22 @@ class ExpressionVisitorTest extends WebTestCase
             ['hidden_for_customer' => ['eq' => '14']],
         ];
         yield [
-            new Comparison('price__price', '>=', 100),
-            ['price__price' => ['gte' => '100']],
+            new Comparison('decimal.price__price', '>=', 100),
+            ['price__price' => ['gte' => 100.0]],
         ];
         yield [
             new CompositeExpression(
                 'AND',
                 [
-                    new Comparison('price__price', '>=', 100),
-                    new Comparison('price__price', '<=', 200),
+                    new Comparison('decimal.price__price', '>=', '100'),
+                    new Comparison('decimal.price__price', '<=', '200'),
                 ]
             ),
             [
                 'boolFilter' => [
                     '_must' => [
-                        ['price__price' => ['gte' => '100']],
-                        ['price__price' => ['lte' => '200']],
+                        ['price__price' => ['gte' => 100.0]],
+                        ['price__price' => ['lte' => 200.0]],
                     ],
                 ],
             ],

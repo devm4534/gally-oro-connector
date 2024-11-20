@@ -222,7 +222,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
         return match ($type) {
             'integer' => (int) $value,
-            'float' => (float) $value,
+            'float', 'decimal' => (float) $value,
             'bool' => (bool) $value,
             'text' => (string) $value,
             default => $value,
