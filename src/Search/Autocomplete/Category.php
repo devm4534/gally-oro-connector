@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search\Autocomplete;
 
+use Gally\OroPlugin\Config\ConfigManager as GallyConfigManager;
+use Gally\OroPlugin\Service\ContextProvider;
 use Oro\Bundle\CatalogBundle\DependencyInjection\Configuration as CatalogConfiguration;
 use Oro\Bundle\ConfigBundle\Config\ConfigManager;
 use Oro\Bundle\ProductBundle\Event\ProcessAutocompleteDataEvent;
@@ -30,11 +32,18 @@ class Category
         private QueryFactoryInterface $queryFactory,
         private HtmlTagExtension $htmlTagExtension,
         private ConfigManager $configManager,
+        private ContextProvider $contextProvider,
+        private GallyConfigManager $gallyConfigManager,
     ) {
     }
 
     public function onProcessAutocompleteData(ProcessAutocompleteDataEvent $event): void
     {
+        $websiteId = $this->contextProvider->getCurrentWebsite()->getId();
+        if (!$this->gallyConfigManager->isGallyEnabled($websiteId)) {
+            return;
+        }
+
         $numberOfCategories = $this->configManager
             ->get(CatalogConfiguration::getConfigKeyByName(CatalogConfiguration::SEARCH_AUTOCOMPLETE_MAX_CATEGORIES));
 

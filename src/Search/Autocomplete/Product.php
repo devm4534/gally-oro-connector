@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search\Autocomplete;
 
-use Gally\OroPlugin\Search\ContextProvider;
+use Gally\OroPlugin\Service\ContextProvider;
 use Oro\Bundle\ProductBundle\Event\ProcessAutocompleteQueryEvent;
 
 /**

@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Indexer;
 
 use Gally\OroPlugin\Indexer\Normalizer\AbstractNormalizer;
+use Gally\OroPlugin\Service\ContextProvider;
 use Oro\Bundle\EntityBundle\ORM\EntityAliasResolver;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
 use Oro\Bundle\UIBundle\Tools\HtmlTagHelper;
@@ -46,6 +47,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         HtmlTagHelper $htmlTagHelper,
         PlaceholderHelper $placeholderHelper,
         private WebsiteContextManager $websiteContextManager,
+        private ContextProvider $contextProvider,
         private array $attributeMapping,
         private iterable $normalizers,
     ) {
@@ -62,6 +64,7 @@ class IndexDataProvider extends BaseIndexDataProvider
         array $entityConfig
     ): array {
         $entityAlias = $this->entityAliasResolver->getAlias($entityClass);
+        $this->contextProvider->setIsGallyContext(true);
 
         $indexEntityEvent = new Event\IndexEntityEvent($entityClass, $restrictedEntities, $context);
         $this->eventDispatcher->dispatch($indexEntityEvent, Event\IndexEntityEvent::NAME);
@@ -70,7 +73,10 @@ class IndexDataProvider extends BaseIndexDataProvider
             sprintf('%s.%s', Event\IndexEntityEvent::NAME, $entityAlias)
         );
 
-        return $this->prepareIndexData($entityClass, $indexEntityEvent->getEntitiesData(), $entityConfig, $context);
+        $data = $this->prepareIndexData($entityClass, $indexEntityEvent->getEntitiesData(), $entityConfig, $context);
+        $this->contextProvider->setIsGallyContext(false);
+
+        return $data;
     }
 
     /**

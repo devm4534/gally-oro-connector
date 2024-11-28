@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Search;
 
 use Gally\OroPlugin\Config\ConfigManager;
+use Gally\OroPlugin\Service\ContextProvider;
 use Oro\Bundle\SearchBundle\Engine\EngineParameters as BaseEngineParameters;
 
 /**

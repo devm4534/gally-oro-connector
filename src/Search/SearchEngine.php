@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search;
 
+use Gally\OroPlugin\Service\ContextProvider;
 use Gally\Sdk\Service\SearchManager;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Provider\AbstractSearchMappingProvider;
@@ -77,13 +78,19 @@ class SearchEngine extends AbstractEngine
                 $item[$name] = $value;
             }
 
-            $results[] = new Item(
+            $itemObject = new Item(
                 $request->getMetadata()->getEntity(),
                 $item['id'],
                 $item['url'] ?? null,
                 $this->mapper->mapSelectedData($query, $item),
                 $this->mappingProvider->getEntityConfig($request->getMetadata()->getEntity())
             );
+            if (\array_key_exists('tree', $item)) {
+                $selectedData = $itemObject->getSelectedData();
+                $selectedData['tree'] = $item['tree'];
+                $itemObject->setSelectedData($selectedData);
+            }
+            $results[] = $itemObject;
         }
 
         $aggregations = [];

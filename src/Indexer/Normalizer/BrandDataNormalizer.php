@@ -47,7 +47,7 @@ class BrandDataNormalizer extends AbstractNormalizer
                 if (isset($data['brand'])) {
                     $preparedIndexData[$entityId]['brand'] = [[
                         'value' => $data['brand'],
-                        'label' => $data['brand_name'] ?? '',  // Todo fix
+                        'label' => $data['brand_name'] ?? '',
                     ]];
                 }
                 unset($preparedIndexData[$entityId]['brand_name']);

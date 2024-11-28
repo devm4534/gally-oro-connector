@@ -10,7 +10,7 @@ services:
         decorates: oro_product.provider.index_fields
         arguments:
             - '@.inner'
-            - '@oro_website_search.engine.parameters'
+            - '@Gally\OroPlugin\Service\ContextProvider'
 
     Gally\OroPlugin\Indexer\Provider\CatalogProvider:
         arguments:
@@ -23,7 +23,7 @@ services:
 
     Gally\OroPlugin\Indexer\Provider\SourceFieldProvider:
         arguments:
-            - '@oro_website_search.provider.search_mapping'
+            - '@Gally\OroPlugin\Provider\SearchMappingProvider'
             - '@oro_entity.entity_alias_resolver'
             - '@oro_entity_config.provider.entity'
             - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
@@ -40,7 +40,7 @@ services:
 
     Gally\OroPlugin\Indexer\Provider\SourceFieldOptionProvider:
         arguments:
-            - '@oro_website_search.provider.search_mapping'
+            - '@Gally\OroPlugin\Provider\SearchMappingProvider'
             - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
             - '@oro_locale.settings'
             - '@doctrine.orm.entity_manager'
@@ -130,13 +130,14 @@ services:
             - '@oro_ui.html_tag_helper'
             - '@oro_website_search.helper.placeholder_helper'
             - '@oro_website_search.manager.website_context_manager'
+            - '@Gally\OroPlugin\Service\ContextProvider'
             - '%gally_config.attribute_mapping%'
             - !tagged_iterator { tag: 'gally.indexer_normalizer' }
 
     Gally\OroPlugin\Indexer\Indexer:
         arguments:
             - '@oro_entity.doctrine_helper'
-            - '@oro_website_search.provider.search_mapping'
+            - '@Gally\OroPlugin\Provider\SearchMappingProvider'
             - '@oro_website_search.engine.entity_dependencies_resolver'
             - '@Gally\OroPlugin\Indexer\IndexDataProvider'
             - '@oro_website_search.placeholder_decorator'

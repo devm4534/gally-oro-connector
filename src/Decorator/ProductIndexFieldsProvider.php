@@ -14,15 +14,17 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Decorator;
 
-use Gally\OroPlugin\Search\SearchEngine;
+use Gally\OroPlugin\Service\ContextProvider;
 use Oro\Bundle\ProductBundle\Search\ProductIndexAttributeProviderInterface;
-use Oro\Bundle\SearchBundle\Engine\EngineParameters;
 
+/**
+ * In gally context, send all attributes to the search engine and let gally decide which ones are searchable or filterable.
+ */
 class ProductIndexFieldsProvider implements ProductIndexAttributeProviderInterface
 {
     public function __construct(
         private ProductIndexAttributeProviderInterface $productIndexAttributeProvider,
-        private EngineParameters $engineParameters,
+        private ContextProvider $contextProvider,
     ) {
     }
 
@@ -33,7 +35,7 @@ class ProductIndexFieldsProvider implements ProductIndexAttributeProviderInterfa
 
     public function isForceIndexed(string $field): bool
     {
-        return SearchEngine::ENGINE_NAME === $this->engineParameters->getEngineName()
-            || $this->productIndexAttributeProvider->isForceIndexed($field);
+        //        return true;
+        return $this->contextProvider->isGallyContext() || $this->productIndexAttributeProvider->isForceIndexed($field);
     }
 }

@@ -41,6 +41,24 @@ services:
             - '@oro_config.manager'
             - '@oro_security.encoder.default'
 
+    Gally\OroPlugin\Service\ContextProvider:
+        arguments:
+            - '@oro_config.manager'
+            - '@oro_website.manager'
+            - '@oro_locale.helper.localization'
+            - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
+            - '@oro_web_catalog.request_web_content_variant_provider'
+
+    Gally\OroPlugin\Provider\SearchMappingProvider:
+        arguments:
+            - '@event_dispatcher'
+            - '@oro_website_search.mapping_configuration.provider'
+            - '@oro_website_search.cache.mapping_configuration'
+            - '@Gally\OroPlugin\Service\ContextProvider'
+            - 'oro_search.mapping_config.gally:'
+            - "@=service('oro_website_search.engine.parameters').getEngineName()"
+            - 'oro_website_search.event.website_search_mapping.configuration'
+
     Gally\OroPlugin\Placeholder\PlaceholderDecorator:
         arguments:
             - '@oro_website_search.placeholder.registry'

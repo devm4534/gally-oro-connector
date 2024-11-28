@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Search\Extension;
 
-use Gally\OroPlugin\Search\ContextProvider;
 use Gally\OroPlugin\Search\SearchEngine;
+use Gally\OroPlugin\Service\ContextProvider;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
 use Gally\Sdk\GraphQl\Request;

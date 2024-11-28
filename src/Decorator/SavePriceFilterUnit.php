@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Decorator;
 
-use Gally\OroPlugin\Search\ContextProvider;
+use Gally\OroPlugin\Service\ContextProvider;
 use Oro\Bundle\FilterBundle\Datasource\FilterDatasourceAdapterInterface;
 use Oro\Bundle\FilterBundle\Filter\FilterInterface;
 use Oro\Bundle\SearchBundle\Datagrid\Filter\SearchNumberFilter;

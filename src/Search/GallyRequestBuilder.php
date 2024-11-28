@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Search;
 
 use Gally\OroPlugin\Resolver\PriceGroupResolver;
+use Gally\OroPlugin\Service\ContextProvider;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\GraphQl\Request;
 use Oro\Bundle\PricingBundle\Placeholder\CPLIdPlaceholder;

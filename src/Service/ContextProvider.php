@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace Gally\OroPlugin\Search;
+namespace Gally\OroPlugin\Service;
 
 use Gally\OroPlugin\Indexer\Provider\CatalogProvider;
 use Gally\Sdk\Entity\LocalizedCatalog;
@@ -27,6 +27,7 @@ use Oro\Component\WebCatalog\Entity\ContentNodeInterface;
 
 class ContextProvider
 {
+    private bool $isGallyContext = false;
     private Response $response;
     private ?string $priceFilterUnit = null;
     private bool $isAutocompleteContext = false;
@@ -38,6 +39,16 @@ class ContextProvider
         private CatalogProvider $catalogProvider,
         private RequestWebContentVariantProvider $requestWebContentVariantProvider,
     ) {
+    }
+
+    public function isGallyContext(): bool
+    {
+        return $this->isGallyContext;
+    }
+
+    public function setIsGallyContext(bool $isGallyContext): void
+    {
+        $this->isGallyContext = $isGallyContext;
     }
 
     public function getCurrentWebsite(): ?Website

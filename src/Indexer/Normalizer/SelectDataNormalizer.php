@@ -90,14 +90,15 @@ class SelectDataNormalizer extends AbstractNormalizer
     ): void {
         foreach ($this->toArray($fieldsValues) as $fieldName => $values) {
             if (preg_match('/^(\w+)_enum\.(.+)$/', $fieldName, $matches)) {
-                foreach ($this->toArray($values) as $value) {
-                    [$_, $cleanFieldName, $value] = $matches;
+                [$_, $cleanFieldName, $value] = $matches;
+                foreach ($this->toArray($values) as $_) {
                     $preparedEntityData[$cleanFieldName][] = [
                         'label' => $this->translatedOptionsByField[$cleanFieldName][$value] ?? $value,
                         'value' => $value,
                     ];
                 }
                 unset($fieldsValues[$fieldName]);
+                unset($fieldsValues[$cleanFieldName]);
             }
         }
     }
