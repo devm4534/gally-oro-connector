@@ -1,0 +1,6 @@
+aliases:
+    oro/filter/gally-filter$: bundles/gallyoro/js/filter/gally-filter
+
+dynamic-imports:
+    orodatagrid:
+        - oro/filter/gally-filter

@@ -27,6 +27,8 @@ use Oro\Component\Exception\UnexpectedTypeException;
  */
 class SelectFilter extends BaseMultiChoiceFilter
 {
+    private bool $hasMore = false;
+
     /**
      * {@inheritDoc}
      */
@@ -34,7 +36,8 @@ class SelectFilter extends BaseMultiChoiceFilter
     {
         parent::init($name, $params);
 
-        $this->params[FilterUtility::FRONTEND_TYPE_KEY] = 'multiselect';
+        $this->hasMore = $params['options']['has_more'] ?? false;
+        $this->params[FilterUtility::FRONTEND_TYPE_KEY] = 'gally';
     }
 
     /**
@@ -78,5 +81,17 @@ class SelectFilter extends BaseMultiChoiceFilter
     protected function getFormType(): string
     {
         return SelectFormFilter::class;
+    }
+
+    public function getMetadata(): array
+    {
+        $metadata = parent::getMetadata();
+
+        $metadata['custom_data'] = [
+            'hasMore' => $this->hasMore,
+            'hasMoreUrl' => '',
+        ];
+
+        return $metadata;
     }
 }

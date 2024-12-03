@@ -1,0 +1,6 @@
+gally_frontend_routes:
+    resource:     "@GallyOroBundle/Controller/Frontend"
+    type:         annotation
+    prefix:       /gally
+    options:
+        frontend: true

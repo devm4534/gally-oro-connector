@@ -16,7 +16,6 @@ namespace Gally\OroPlugin\Search\Filter\Form;
 
 use Oro\Bundle\FilterBundle\Form\Type\Filter\ChoiceFilterType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -32,6 +31,7 @@ class SelectFormFilter extends AbstractType
      */
     public function configureOptions(OptionsResolver $resolver)
     {
+        $resolver->setDefault('has_more', false);
         $resolver->setDefault('gally_options', []);
         $resolver->setNormalizer(
             'gally_options',
@@ -40,22 +40,15 @@ class SelectFormFilter extends AbstractType
             }
         );
 
-        //        $resolver->setNormalizer( //todo might be removed
-        //            'class',
-        //            function (Options $options, $value) {
-        //                    return null;
-        //            }
-        //        );
-
         $resolver->setNormalizer(
             'field_options',
             function (Options $options, $value) {
                 $value['choices'] = $options['gally_options'];
                 $value['choice_loader'] = new ChoiceLoader();
-                $value['choice_value'] = function ($value = null, $data = null, $toto = null) {
+                $value['choice_value'] = function ($value = null) {
                     return $value;
                 };
-                $value['choice_filter'] = function ($value = null, $data = null, $toto = null) {
+                $value['choice_filter'] = function ($value = null) {
                     return $value;
                 };
 
@@ -69,11 +62,6 @@ class SelectFormFilter extends AbstractType
                 return $value;
             }
         );
-    }
-
-    public function buildForm(FormBuilderInterface $builder, array $options)
-    {
-        $toto = 'blop';
     }
 
     /**

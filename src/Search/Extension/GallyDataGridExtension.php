@@ -203,6 +203,7 @@ class GallyDataGridExtension extends AbstractExtension
             } else {
                 $filter['choices'] = $gallyFilter['options'];
                 $filter['options']['gally_options'] = $gallyFilter['options'];
+                $filter['options']['has_more'] = $gallyFilter['hasMore'];
                 $filter['type'] = 'gally-select';
                 $filters[$gallyFilter['field']] = $filter;
             }

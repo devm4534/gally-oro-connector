@@ -1,0 +1,16 @@
+services:
+    _defaults:
+        public: true
+
+    Gally\OroPlugin\Controller\Frontend\ViewMoreController:
+        arguments:
+            - '@oro_datagrid.datagrid.manager'
+            - '@oro_datagrid.datagrid.request_parameters_factory'
+            - '@event_dispatcher'
+            - '@Gally\OroPlugin\Resolver\QueryPlaceholderResolver'
+            - '@Gally\OroPlugin\Search\GallyRequestBuilder'
+            - '@Gally\Sdk\Service\SearchManager'
+        calls:
+            - [setContainer, ['@Psr\Container\ContainerInterface']]
+        tags:
+            - { name: container.service_subscriber }

@@ -15,3 +15,6 @@ gally:
             password:
                 label: "Mot de passe"
                 tooltip: "Mot de passe utilisé pour se connecter à Gally."
+    filter:
+        showMore:
+            label: "Voir plus"
