@@ -18,6 +18,13 @@ Oro\Bundle\WebCatalogBundle\Entity\ContentNode:
         - name: url
           type: text
 
+Oro\Bundle\ProductBundle\Entity\Product:
+    fields:
+        - name: visible_for_customer
+          type: text
+        - name: hidden_for_customer
+          type: text
+
 Oro\Bundle\ProductBundle\Entity\Brand:
     fields:
         - name: id
