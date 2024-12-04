@@ -57,9 +57,12 @@ class SearchEngine extends AbstractEngine
     {
         $request = $this->requestBuilder->build($query, $context);
         $response = $this->searchManager->search($request);
-        $this->contextProvider->setResponse($response);
-
         $results = [];
+        if ('product' === $request->getMetadata()->getEntity()) {
+            $this->contextProvider->setRequest($request);
+            $this->contextProvider->setResponse($response);
+        }
+
         foreach ($response->getCollection() as $item) {
             $item['id'] = (int) basename($item['id']);
 

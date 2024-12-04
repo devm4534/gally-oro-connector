@@ -16,6 +16,7 @@ namespace Gally\OroPlugin\Service;
 
 use Gally\OroPlugin\Indexer\Provider\CatalogProvider;
 use Gally\Sdk\Entity\LocalizedCatalog;
+use Gally\Sdk\GraphQl\Request;
 use Gally\Sdk\GraphQl\Response;
 use Oro\Bundle\ConfigBundle\Config\ConfigManager;
 use Oro\Bundle\LocaleBundle\Entity\Localization;
@@ -28,6 +29,7 @@ use Oro\Component\WebCatalog\Entity\ContentNodeInterface;
 class ContextProvider
 {
     private bool $isGallyContext = false;
+    private Request $request;
     private Response $response;
     private ?string $priceFilterUnit = null;
     private bool $isAutocompleteContext = false;
@@ -75,6 +77,16 @@ class ContextProvider
         $isCategoryNode = $contentVariant && \in_array($contentVariant->getType(), ['category_page', 'variant'], true);
 
         return $isCategoryNode ? $this->requestWebContentVariantProvider->getContentVariant()?->getNode() : null;
+    }
+
+    public function getRequest(): Request
+    {
+        return $this->request;
+    }
+
+    public function setRequest(Request $request): void
+    {
+        $this->request = $request;
     }
 
     public function getResponse(): Response

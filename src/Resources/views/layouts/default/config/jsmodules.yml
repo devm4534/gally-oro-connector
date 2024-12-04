@@ -4,3 +4,6 @@ aliases:
 dynamic-imports:
     orodatagrid:
         - oro/filter/gally-filter
+map:
+    '*':
+        oroproduct/templates/search-autocomplete.html: gallyoro/default/templates/search-autocomplete.html

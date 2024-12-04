@@ -62,6 +62,23 @@ function highlightWords(inputString, value) {
                     </a>
                 </li>
                 <% }) %>
+                <%_.each(attributes, function(attribute) { %>
+                <li class="search-autocomplete__item" role="option">
+                    <a href="<%- attribute.url %>" class="search-autocomplete-category">
+                        <div class="search-autocomplete-category__image">
+                            <span class="fa-tag fa--no-offset"></span>
+                        </div>
+                        <div class="search-autocomplete-category__info">
+                            <div class="search-autocomplete-category__head">
+                                <%= attribute.field %>
+                            </div>
+                            <div class="search-autocomplete-category__body">
+                                <%= attribute.label %>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                <% }) %>
                 <li class="search-autocomplete__item" role="option">
                     <button class="btn btn--link btn--no-offset search-autocomplete__submit"
                             type="submit"
