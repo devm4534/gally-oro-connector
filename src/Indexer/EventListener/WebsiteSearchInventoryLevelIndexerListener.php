@@ -33,7 +33,7 @@ class WebsiteSearchInventoryLevelIndexerListener implements WebsiteSearchProduct
     public function __construct(
         private ManagerRegistry $doctrine,
         private ConfigManager $configManager,
-        private EnabledWarehousesProvider $enabledWarehousesProvider,
+        private EnabledWarehousesProvider $enabledWarehousesProvider, // @phpstan-ignore-line
     ) {
     }
 
@@ -52,7 +52,7 @@ class WebsiteSearchInventoryLevelIndexerListener implements WebsiteSearchProduct
         $inventoryLevelRepository = $this->doctrine->getRepository(InventoryLevel::class);
         $inventoryLevels = $inventoryLevelRepository->findBy([
             'product' => $event->getEntities(),
-            'warehouse' => $this->enabledWarehousesProvider->getEnabledWarehouseIds(),
+            'warehouse' => $this->enabledWarehousesProvider->getEnabledWarehouseIds(), // @phpstan-ignore class.notFound
         ]);
 
         /** @var InventoryLevel $inventoryLevel */
