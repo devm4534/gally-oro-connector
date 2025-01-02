@@ -34,30 +34,29 @@ class Attribute
     public function onProcessAutocompleteData(ProcessAutocompleteDataEvent $event): void
     {
         $websiteId = $this->contextProvider->getCurrentWebsite()->getId();
-        if (!$this->gallyConfigManager->isGallyEnabled($websiteId)) {
-            return;
-        }
-
-        $searchQuery = $this->contextProvider->getRequest()->getSearchQuery();
         $attributeData = [];
-        foreach ($this->contextProvider->getResponse()->getAggregations() as $aggregationData) {
-            foreach ($aggregationData['options'] as $option) {
-                $params = [
-                    'f' => [$aggregationData['field'] => ['value' => [$option['value']]]],
-                    'g' => ['search' => $searchQuery],
-                ];
-                $url = $this->urlGenerator->generate(
-                    'oro_product_frontend_product_search',
-                    [
-                        'search' => $searchQuery,
-                        'grid' => ['frontend-product-search-grid' => http_build_query($params)],
-                    ]
-                );
-                $attributeData[] = [
-                    'field' => $aggregationData['label'],
-                    'label' => $option['label'],
-                    'url' => $url,
-                ];
+
+        if ($this->gallyConfigManager->isGallyEnabled($websiteId)) {
+            $searchQuery = $this->contextProvider->getRequest()->getSearchQuery();
+            foreach ($this->contextProvider->getResponse()->getAggregations() as $aggregationData) {
+                foreach ($aggregationData['options'] as $option) {
+                    $params = [
+                        'f' => [$aggregationData['field'] => ['value' => [$option['value']]]],
+                        'g' => ['search' => $searchQuery],
+                    ];
+                    $url = $this->urlGenerator->generate(
+                        'oro_product_frontend_product_search',
+                        [
+                            'search' => $searchQuery,
+                            'grid' => ['frontend-product-search-grid' => http_build_query($params)],
+                        ]
+                    );
+                    $attributeData[] = [
+                        'field' => $aggregationData['label'],
+                        'label' => $option['label'],
+                        'url' => $url,
+                    ];
+                }
             }
         }
 
