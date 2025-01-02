@@ -6,4 +6,7 @@ dynamic-imports:
         - oro/filter/gally-filter
 map:
     '*':
-        oroproduct/templates/search-autocomplete.html: gallyoro/default/templates/search-autocomplete.html
+        orofilter/js/filters-manager: 'gallyoro/js/filters-manager'
+        oroproduct/templates/search-autocomplete.html: 'gallyoro/default/templates/search-autocomplete.html'
+    'gallyoro/js/filters-manager':
+        'orofilter/js/filters-manager': 'orofilter/js/filters-manager'

@@ -85,6 +85,7 @@ class GallyDataGridExtension extends AbstractExtension
                     'visible' => false,
                     'disabled' => false,
                     'renderable' => true,
+                    'choices' => [],
                 ];
 
                 // @see \Gally\Search\Decoration\GraphQl\AddAggregationsData::formatAggregation
@@ -180,7 +181,7 @@ class GallyDataGridExtension extends AbstractExtension
         $filters = [];
 
         foreach ($currentFilters as $code => $filter) {
-            if (\in_array($code, ['sku', 'names'], true)) {
+            if (\in_array($code, ['sku', 'names'], true) || 'gally-select' === $filter['type']) {
                 $filters[$code] = $filter;
             }
         }
@@ -201,6 +202,9 @@ class GallyDataGridExtension extends AbstractExtension
                 $filter['type'] = 'boolean';
                 $filters[$gallyFilter['field']] = $filter;
             } else {
+                foreach ($gallyFilter['options'] as $index => $option) {
+                    $gallyFilter['options'][$index]['data'] = $option['value'];
+                }
                 $filter['choices'] = $gallyFilter['options'];
                 $filter['options']['gally_options'] = $gallyFilter['options'];
                 $filter['options']['has_more'] = $gallyFilter['hasMore'];

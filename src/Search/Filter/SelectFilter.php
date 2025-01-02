@@ -87,10 +87,14 @@ class SelectFilter extends BaseMultiChoiceFilter
     {
         $metadata = parent::getMetadata();
 
-        $metadata['custom_data'] = [
-            'hasMore' => $this->hasMore,
-            'hasMoreUrl' => '',
-        ];
+        $metadata['custom_data'] = ['hasMore' => $this->hasMore];
+        $metadata['isDisableFiltersEnabled'] = true;
+        $metadata['counts'] = [];
+        $metadata['countsWithoutFilters'] = [];
+        foreach ($metadata['choices'] ?? [] as $choice) {
+            $metadata['counts'][$choice['value']] = $choice['count'];
+            $metadata['countsWithoutFilters'][$choice['value']] = $choice['count'];
+        }
 
         return $metadata;
     }

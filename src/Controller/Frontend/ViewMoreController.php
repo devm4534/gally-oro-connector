@@ -43,7 +43,7 @@ class ViewMoreController extends AbstractController
     }
 
     /**
-     * @Route("/filter_view_more", name="gally_filter_view_more", methods={"GET"})
+     * @Route("/filter_view_more", name="gally_filter_view_more", methods={"GET"}, options={"expose"=true})
      *
      * @AclAncestor("oro_product_frontend_view")
      */
