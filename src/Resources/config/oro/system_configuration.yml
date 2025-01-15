@@ -24,10 +24,18 @@ system_configuration:
                 constraints:
                     - Url: ~
 
+        gally_oro.check_ssl:
+            data_type: boolean
+            type: Oro\Bundle\ConfigBundle\Form\Type\ConfigCheckbox
+            priority: 30
+            options:
+                label: gally.configuration.field.check_ssl.label
+                tooltip: gally.configuration.field.check_ssl.tooltip
+
         gally_oro.email:
             data_type: string
             type: Symfony\Component\Form\Extension\Core\Type\TextType
-            priority: 30
+            priority: 20
             options:
                 label: gally.configuration.field.email.label
                 tooltip: gally.configuration.field.email.tooltip
@@ -37,7 +45,7 @@ system_configuration:
         gally_oro.password:
             data_type: string
             type: Oro\Bundle\FormBundle\Form\Type\OroEncodedPlaceholderPasswordType
-            priority: 20
+            priority: 10
             options:
                 label: gally.configuration.field.password.label
                 tooltip: gally.configuration.field.password.tooltip
@@ -53,8 +61,10 @@ system_configuration:
                                     gally_group:
                                         children:
                                             - gally_oro.url
+                                            - gally_oro.check_ssl
                                             - gally_oro.email
                                             - gally_oro.password
+                                            - gally_oro.enabled
 
         website_configuration:
             commerce:

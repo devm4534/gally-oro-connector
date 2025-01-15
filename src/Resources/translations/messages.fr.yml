@@ -9,6 +9,9 @@ gally:
             url:
                 label: "URL de Gally"
                 tooltip: "URL de connexion au service Gally."
+            check_ssl:
+                label: "Vérifier le SSL"
+                tooltip: "Valider le certificate SSL du domaine Gally."
             email:
                 label: "Email"
                 tooltip: "Email utilisé pour se connecter à Gally."

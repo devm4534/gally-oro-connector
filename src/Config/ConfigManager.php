@@ -53,6 +53,11 @@ class ConfigManager
         return $this->getConfigValue('gally_oro.url') ?? '';
     }
 
+    public function checkSSL(): bool
+    {
+        return $this->getConfigValue('gally_oro.check_ssl') ?? true;
+    }
+
     public function getGallyEmail(): string
     {
         return $this->getConfigValue('gally_oro.email') ?? '';

@@ -8,14 +8,11 @@ services:
     Gally\Sdk\Service\StructureSynchonizer:
         arguments:
             - '@Gally\Sdk\Client\Configuration'
-            - '%kernel.environment%'
 
     Gally\Sdk\Service\IndexOperation:
         arguments:
             - '@Gally\Sdk\Client\Configuration'
-            - '%kernel.environment%'
 
     Gally\Sdk\Service\SearchManager:
         arguments:
             - '@Gally\Sdk\Client\Configuration'
-            - '%kernel.environment%'

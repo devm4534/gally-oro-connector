@@ -37,6 +37,7 @@ class Configuration implements ConfigurationInterface
             [
                 'enabled' => ['type' => 'boolean', 'value' => false],
                 'url' => ['type' => 'string', 'value' => ''],
+                'check_ssl' => ['type' => 'string', 'value' => true],
                 'email' => ['type' => 'string', 'value' => ''],
                 'password' => ['type' => 'string', 'value' => ''],
             ]

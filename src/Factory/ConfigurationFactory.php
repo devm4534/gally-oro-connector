@@ -23,6 +23,7 @@ class ConfigurationFactory
     {
         return new Configuration(
             $configManager->getGallyUrl(),
+            $configManager->checkSSL(),
             $configManager->getGallyEmail(),
             $configManager->getGallyPassword(),
         );
