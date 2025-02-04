@@ -79,8 +79,13 @@ class SearchEngine extends AbstractEngine
                 } elseif ('minimal_price' === $name && isset($item['price'])) {
                     $value = $item['price'][0]['price'];
                 } elseif ('tree' !== $name && \is_array($value)) {
-                    $value = reset($value)['value'];
-                    $item['additional'][$name . '_label'] = reset($value)['label'];
+                    $valueIds = [];
+                    $item['additional'][$name . '_label'] = [];
+                    foreach ($value as $valueOption) {
+                        $valueIds[] = $valueOption['value'];
+                        $item['additional'][$name . '_label'][] = $valueOption['label'];
+                    }
+                    $value = $valueIds;
                 }
 
                 $item[$name] = $value;
