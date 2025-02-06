@@ -98,30 +98,34 @@ class ExpressionVisitor extends BaseExpressionVisitor
                 }
             }
 
+            foreach ($filters[$filterType] ?? [] as $filterData) {
+                if (\count($filterData) > 1) {
+                    $isMainQuery = false; // We can't stitch multiple filter on the same field.
+                }
+            }
+
             $rationalizedFilters = [];
-            foreach ($filters[$filterType] ?? [] as $field => $queryFilter) {
-                if (\count($queryFilter) > 1) {
-                    foreach ($queryFilter as $filter) {
-                        $isMainQuery = false; // We can't stitch multiple filter on the same field.
-                        $rationalizedFilters[] = \is_string($field) ? [$field => $filter] : $filter;
+            foreach ($filters[$filterType] ?? [] as $field => $filterData) {
+                if (\count($filterData) > 1) {
+                    foreach ($filterData as $filterItem) {
+                        $rationalizedFilters[] = \is_string($field) ? [$field => $filterItem] : $filterItem;
                     }
                 } elseif (\is_string($field) && $isMainQuery) {
-                    $rationalizedFilters[$field] = $queryFilter;
+                    $rationalizedFilters[$field] = $filterData;
                 } else {
-                    $rationalizedFilters[] = \is_string($field) ? [$field => $queryFilter] : $queryFilter;
+                    $rationalizedFilters[] = \is_string($field) ? [$field => $filterData] : $filterData;
                 }
             }
             $filters[$filterType] = $rationalizedFilters;
         }
 
         if (!$isMainQuery) {
-            $filters['queryFilters'] = [
-                [
-                    Request::FILTER_TYPE_BOOLEAN => [
-                        $type => array_merge($filters['queryFilters'] ?? [], $filters['facetFilters'] ?? []),
-                    ],
+            $boolFilter = [
+                Request::FILTER_TYPE_BOOLEAN => [
+                    $type => array_merge($filters['queryFilters'] ?? [], $filters['facetFilters'] ?? []),
                 ],
             ];
+            $filters['queryFilters'] = $isStitchedQuery ? $boolFilter : [$boolFilter];
             $filters['facetFilters'] = [];
         }
 

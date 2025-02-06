@@ -132,7 +132,7 @@ class GallyRequestBuilder
         $this->expressionVisitor->setSelectSourceFields($selectSourceFields);
 
         if ($expression = $query->getCriteria()->getWhereExpression()) {
-            $filters = $this->expressionVisitor->dispatch($expression, 'product' === $metadata->getEntity());
+            $filters = $this->expressionVisitor->dispatch($expression, 'product' === $metadata->getEntity()) ?? [];
         }
 
         if (!\array_key_exists('facetFilters', $filters)) {
@@ -153,8 +153,7 @@ class GallyRequestBuilder
             ];
         }
 
-        return [
-            $this->expressionVisitor->getSearchQuery(), array_filter($filters['facetFilters'])];
+        return [$this->expressionVisitor->getSearchQuery(), array_filter($filters['facetFilters'])];
     }
 
     private function getPriceGroup(): string

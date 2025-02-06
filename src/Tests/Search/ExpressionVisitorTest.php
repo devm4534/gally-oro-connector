@@ -452,6 +452,48 @@ class ExpressionVisitorTest extends WebTestCase
                 ],
             ],
         ];
+        yield [
+            new CompositeExpression(
+                'AND',
+                [
+                    new CompositeExpression(
+                        'AND',
+                        [
+                            new CompositeExpression(
+                                'AND',
+                                [
+                                    new CompositeExpression(
+                                        'AND',
+                                        [
+                                            new CompositeExpression(
+                                                'AND',
+                                                [
+                                                    new Comparison('integer.brand', '=', new Value(1425)),
+                                                    new Comparison('integer.is_variant', '=', new Value(0)),
+                                                ],
+                                            ),
+                                            new Comparison('integer.is_variant', '=', new Value(0)),
+                                        ],
+                                    ),
+                                    new Comparison('status', 'IN', new Value(['enabled'])),
+                                ]
+                            ),
+                            new Comparison('inv_status', 'IN', new Value(['in_stock', 'out_of_stock'])),
+                        ],
+                    ),
+                    new Comparison('integer.visibility_anonymous', '=', new Value(1)),
+                ],
+            ),
+            [
+                'queryFilters' => [
+                    ['equalFilter' => ['field' => 'brand__value', 'eq' => '1425']],
+                    ['equalFilter' => ['field' => 'is_variant', 'eq' => '0']],
+                    ['equalFilter' => ['field' => 'is_variant', 'eq' => '0']],
+                    ['equalFilter' => ['field' => 'status', 'in' => ['enabled']]],
+                    ['equalFilter' => ['field' => 'visibility_anonymous', 'eq' => '1']],
+                ]
+            ]
+        ];
     }
 
     /**
@@ -542,13 +584,11 @@ class ExpressionVisitorTest extends WebTestCase
             new Comparison('category__id', 'IN', new Value([1, 2, 3])),
             [
                 'queryFilters' => [
-                    [
-                        'boolFilter' => [
-                            '_should' => [
-                                ['category__id' => ['eq' => '1']],
-                                ['category__id' => ['eq' => '2']],
-                                ['category__id' => ['eq' => '3']],
-                            ],
+                    'boolFilter' => [
+                        '_should' => [
+                            ['category__id' => ['eq' => '1']],
+                            ['category__id' => ['eq' => '2']],
+                            ['category__id' => ['eq' => '3']],
                         ],
                     ],
                 ],
@@ -558,13 +598,11 @@ class ExpressionVisitorTest extends WebTestCase
             new Comparison('category__id', 'NOT IN', new Value([4, 5, 6])),
             [
                 'queryFilters' => [
-                    [
-                        'boolFilter' => [
-                            '_must' => [
-                                ['boolFilter' => ['_not' => [['category__id' => ['eq' => '4']]]]],
-                                ['boolFilter' => ['_not' => [['category__id' => ['eq' => '5']]]]],
-                                ['boolFilter' => ['_not' => [['category__id' => ['eq' => '6']]]]],
-                            ],
+                    'boolFilter' => [
+                        '_must' => [
+                            ['boolFilter' => ['_not' => [['category__id' => ['eq' => '4']]]]],
+                            ['boolFilter' => ['_not' => [['category__id' => ['eq' => '5']]]]],
+                            ['boolFilter' => ['_not' => [['category__id' => ['eq' => '6']]]]],
                         ],
                     ],
                 ],
@@ -618,12 +656,10 @@ class ExpressionVisitorTest extends WebTestCase
             new Comparison('visibility_customer.12', 'EXISTS', new Value(1)),
             [
                 'queryFilters' => [
-                    [
-                        'boolFilter' => [
-                            '_should' => [
-                                ['visible_for_customer' => ['eq' => '12']],
-                                ['hidden_for_customer' => ['eq' => '12']],
-                            ],
+                    'boolFilter' => [
+                        '_should' => [
+                            ['visible_for_customer' => ['eq' => '12']],
+                            ['hidden_for_customer' => ['eq' => '12']],
                         ],
                     ],
                 ],
@@ -679,12 +715,10 @@ class ExpressionVisitorTest extends WebTestCase
             ),
             [
                 'queryFilters' => [
-                    [
-                        'boolFilter' => [
-                            '_must' => [
-                                ['price__price' => ['gte' => 100.0]],
-                                ['price__price' => ['lte' => 200.0]],
-                            ],
+                    'boolFilter' => [
+                        '_must' => [
+                            ['price__price' => ['gte' => 100.0]],
+                            ['price__price' => ['lte' => 200.0]],
                         ],
                     ],
                 ],
@@ -700,12 +734,10 @@ class ExpressionVisitorTest extends WebTestCase
             ),
             [
                 'queryFilters' => [
-                    [
-                        'boolFilter' => [
-                            '_must' => [
-                                ['price__price' => ['gte' => 200.0]],
-                                ['price__price' => ['lte' => 300.0]],
-                            ],
+                    'boolFilter' => [
+                        '_must' => [
+                            ['price__price' => ['gte' => 200.0]],
+                            ['price__price' => ['lte' => 300.0]],
                         ],
                     ],
                 ],
@@ -851,28 +883,26 @@ class ExpressionVisitorTest extends WebTestCase
                 'queryFilters' => [
                     'category_paths' => ['in' => '1_5'],
                     'status' => ['in' => ['enabled']],
-                    [
-                        'boolFilter' => [
-                            '_should' => [
-                                [
-                                    'boolFilter' => [
-                                        '_must' => [
-                                            ['visible_by_default' => ['eq' => '1']],
-                                            [
-                                                'boolFilter' => [
-                                                    '_must' => [
-                                                        [
-                                                            'boolFilter' => [
-                                                                '_not' => [
-                                                                    ['visible_for_customer' => ['eq' => '42']],
-                                                                ],
+                    'boolFilter' => [
+                        '_should' => [
+                            [
+                                'boolFilter' => [
+                                    '_must' => [
+                                        ['visible_by_default' => ['eq' => '1']],
+                                        [
+                                            'boolFilter' => [
+                                                '_must' => [
+                                                    [
+                                                        'boolFilter' => [
+                                                            '_not' => [
+                                                                ['visible_for_customer' => ['eq' => '42']],
                                                             ],
                                                         ],
-                                                        [
-                                                            'boolFilter' => [
-                                                                '_not' => [
-                                                                    ['hidden_for_customer' => ['eq' => '42']],
-                                                                ],
+                                                    ],
+                                                    [
+                                                        'boolFilter' => [
+                                                            '_not' => [
+                                                                ['hidden_for_customer' => ['eq' => '42']],
                                                             ],
                                                         ],
                                                     ],
@@ -881,12 +911,12 @@ class ExpressionVisitorTest extends WebTestCase
                                         ],
                                     ],
                                 ],
-                                [
-                                    'boolFilter' => [
-                                        '_must' => [
-                                            ['visible_by_default' => ['eq' => '-1']],
-                                            ['visible_for_customer' => ['eq' => '42']],
-                                        ],
+                            ],
+                            [
+                                'boolFilter' => [
+                                    '_must' => [
+                                        ['visible_by_default' => ['eq' => '-1']],
+                                        ['visible_for_customer' => ['eq' => '42']],
                                     ],
                                 ],
                             ],
@@ -898,6 +928,52 @@ class ExpressionVisitorTest extends WebTestCase
                     'brand__value' => ['eq' => '1236'],
                 ],
             ],
+        ];
+        yield [
+            new CompositeExpression(
+                'AND',
+                [
+                    new CompositeExpression(
+                        'AND',
+                        [
+                            new CompositeExpression(
+                                'AND',
+                                [
+                                    new CompositeExpression(
+                                        'AND',
+                                        [
+                                            new CompositeExpression(
+                                                'AND',
+                                                [
+                                                    new Comparison('integer.brand', '=', new Value(1425)),
+                                                    new Comparison('integer.is_variant', '=', new Value(0)),
+                                                ],
+                                            ),
+                                            new Comparison('integer.is_variant', '=', new Value(0)),
+                                        ],
+                                    ),
+                                    new Comparison('status', 'IN', new Value(['enabled'])),
+                                ]
+                            ),
+                            new Comparison('inv_status', 'IN', new Value(['in_stock', 'out_of_stock'])),
+                        ],
+                    ),
+                    new Comparison('integer.visibility_anonymous', '=', new Value(1)),
+                ],
+            ),
+            [
+                'queryFilters' => [
+                    'boolFilter' => [
+                        '_must' => [
+                            ['brand__value' => ['eq' => '1425']],
+                            ['is_variant' => ['eq' => 0]],
+                            ['is_variant' => ['eq' => 0]],
+                        ],
+                    ],
+                    'status' => ['in' => ['enabled']],
+                    'visibility_anonymous' => ['eq' => 1],
+                ]
+            ]
         ];
     }
 }
