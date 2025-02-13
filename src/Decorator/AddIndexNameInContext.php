@@ -44,9 +44,6 @@ class AddIndexNameInContext extends ReindexMessageGranularizer
      */
     public function process($entities, array $websites, array $context): iterable
     {
-        $entityIds = $this->getContextEntityIds($context);
-        $isFullIndexation = empty($entityIds);
-
         // Add index names in queue message in order to be able to update existing index.
         if (!isset($context['indices_by_locale'])) {
             $context['indices_by_locale'] = $this->indexRegistry->getIndicesByLocale();
@@ -73,10 +70,7 @@ class AddIndexNameInContext extends ReindexMessageGranularizer
         }
 
         foreach ($childMessages as $childMessage) {
-            $entityClass = reset($childMessage['class']);
             $childMessage['context']['indices_by_locale'] = $context['indices_by_locale'];
-            $childMessage['context']['message_count'] = $messageCount[$entityClass];
-            $childMessage['context']['is_full_indexation'] = $isFullIndexation;
 
             yield $childMessage;
         }

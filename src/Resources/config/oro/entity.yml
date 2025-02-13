@@ -1,3 +1,0 @@
-oro_entity:
-    entity_alias_exclusions:
-        - Gally\OroPlugin\Entity\IndexBatchCount

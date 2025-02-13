@@ -53,11 +53,7 @@ class AddIndexNameInReindexMessage extends IndexerInputValidator
 
         $optionsResolver->setDefault('context', function (OptionsResolver $resolver) {
             $resolver->setDefined('indices_by_locale');
-            $resolver->setDefined('message_count');
-            $resolver->setDefined('is_full_indexation');
             $resolver->setAllowedTypes('indices_by_locale', ['array']);
-            $resolver->setAllowedTypes('message_count', ['array']);
-            $resolver->setAllowedTypes('is_full_indexation', ['bool']);
         });
     }
 

@@ -30,6 +30,8 @@ class GallyOroExtension extends Extension
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yml');
         $loader->load('controllers.yml');
+        $loader->load('mq_topics.yml');
+        $loader->load('mq_processors.yml');
 
         // Use class path in a string because this class might not exist if enterprise bundles are not installed.
         if (class_exists('Oro\Bundle\WarehouseBundle\Provider\EnabledWarehousesProvider')) {
