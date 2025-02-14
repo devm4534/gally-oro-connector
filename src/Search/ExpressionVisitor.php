@@ -157,7 +157,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
         [$type, $field, $comeFromFacet] = $this->explodeFieldTypeName($comparison->getField());
         $value = $this->dispatch($comparison->getValue(), $isStitchedQuery);
         $operator = $this->getGallyOperator($comparison->getOperator());
-        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT') || '<>' === $comparison->getOperator();
+        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT') || \in_array($comparison->getOperator(), ['<>', 'NIN'], true);
 
         if ('all_text' === $field) {
             $this->searchQuery = $value;
@@ -281,7 +281,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
     private function getGallyOperator(string $operator): string
     {
         return match ($operator) {
-            'IN', 'NOT IN' => Request::FILTER_OPERATOR_IN,
+            'IN', 'NOT IN', 'NIN' => Request::FILTER_OPERATOR_IN,
             'LIKE', 'NOT LIKE' => Request::FILTER_OPERATOR_MATCH,
             'EXISTS', 'NOT EXISTS' => Request::FILTER_OPERATOR_EXISTS,
             '>' => Request::FILTER_OPERATOR_GT,

@@ -64,6 +64,14 @@ class ExpressionVisitorTest extends WebTestCase
             ],
         ];
         yield [
+            new Comparison('type', 'NIN', new Value(['configurable', 'kit'])),
+            [
+                'queryFilters' => [
+                    ['boolFilter' => ['_not' => [['equalFilter' => ['field' => 'type', 'in' => ['configurable', 'kit']]]]]],
+                ],
+            ],
+        ];
+        yield [
             new Comparison('sku', '=', new Value('test')),
             [
                 'queryFilters' => [
