@@ -62,6 +62,7 @@ class SourceFieldProvider implements ProviderInterface
     public function provide(): iterable
     {
         foreach ($this->mappingProvider->getEntityClasses() as $entityClass) {
+            // Use class path in a string because this class might not exist if enterprise bundles are not installed.
             if ('Oro\Bundle\WebsiteElasticSearchBundle\Entity\SavedSearch' === $entityClass) {
                 // Todo managed savedSearch https://doc.oroinc.com/user/storefront/account/saved-search/
                 continue;
@@ -69,6 +70,8 @@ class SourceFieldProvider implements ProviderInterface
 
             $metadata = $this->getMetadataFromEntityClass($entityClass);
             $entityConfig = $this->mappingProvider->getEntityConfig($entityClass);
+
+            yield new SourceField($metadata, 'id', 'text', 'Id', [], true);
 
             foreach ($entityConfig['fields'] as $fieldData) {
                 if (\in_array($fieldData['name'], $this->fieldToSkip, true)) {

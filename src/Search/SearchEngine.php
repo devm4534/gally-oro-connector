@@ -33,6 +33,8 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 class SearchEngine extends AbstractEngine
 {
     public const ENGINE_NAME = 'gally';
+    // We need to identifier filter that come from aggregation in other to "hide" other filter in a boolFilter
+    public const GALLY_FILTER_PREFIX = 'gally__';
 
     protected Mapper $mapper;
 
@@ -70,12 +72,20 @@ class SearchEngine extends AbstractEngine
                 [$type, $name] = Criteria::explodeFieldTypeName($field);
                 $value = $item[$this->attributeMapping[$name] ?? $name] ?? null;
 
-                if ('inv_status' === $name && isset($item['stock'])) {
+                if (('inv_status' === $name || 'inventory_status' === $name) && isset($item['stock'])) {
                     $value = $item['stock']['status']
                         ? Product::INVENTORY_STATUS_IN_STOCK
                         : Product::INVENTORY_STATUS_OUT_OF_STOCK;
                 } elseif ('minimal_price' === $name && isset($item['price'])) {
                     $value = $item['price'][0]['price'];
+                } elseif ('tree' !== $name && \is_array($value)) {
+                    $valueIds = [];
+                    $item['additional'][$name . '_label'] = [];
+                    foreach ($value as $valueOption) {
+                        $valueIds[] = $valueOption['value'];
+                        $item['additional'][$name . '_label'][] = $valueOption['label'];
+                    }
+                    $value = $valueIds;
                 }
 
                 $item[$name] = $value;
@@ -98,7 +108,7 @@ class SearchEngine extends AbstractEngine
 
         $aggregations = [];
         foreach ($response->getAggregations() as $aggregation) {
-            $field = $aggregation['field'];
+            $field = self::GALLY_FILTER_PREFIX . $aggregation['field'];
             foreach ($aggregation['options'] as $option) {
                 $aggregations[$field][$option['value']] = $option['count'];
             }

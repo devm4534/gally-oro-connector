@@ -22,8 +22,10 @@ services:
             - '@Gally\OroPlugin\Service\ContextProvider'
             - '@Gally\OroPlugin\Search\ExpressionVisitor'
             - '@Gally\OroPlugin\Resolver\PriceGroupResolver'
+            - '@Gally\Sdk\Service\SearchManager'
             - '@oro_website_search.placeholder.registry'
             - '%gally_config.attribute_mapping%'
+            - '@cache.app'
 
     Gally\OroPlugin\Search\Filter\SelectFilter:
         public: false
@@ -43,8 +45,6 @@ services:
             - '@event_dispatcher'
             - '@Gally\OroPlugin\Resolver\QueryPlaceholderResolver'
             - '@oro_website_search.provider.search_mapping'
-            #            - '@oro_website_elastic_search.engine.index_agent'
-            #            - '@oro_website_elastic_search.request_builder.registry'
             - '@Gally\Sdk\Service\SearchManager'
             - '@Gally\OroPlugin\Search\GallyRequestBuilder'
             - '@Gally\OroPlugin\Service\ContextProvider'
@@ -62,13 +62,22 @@ services:
         tags:
             - { name: 'oro_website_search.customer_partial_update_driver', engine_name: 'gally' }
 
+
     Gally\OroPlugin\Search\Extension\GallyDataGridExtension:
         arguments:
             - '@oro_website_search.engine.parameters'
             - '@Gally\Sdk\Service\SearchManager'
-            - '@Gally\OroPlugin\Service\ContextProvider'
+            - ['frontend-product-search-grid', 'frontend-catalog-allproducts-grid']
         tags:
             - { name: oro_datagrid.extension }
+
+    Gally\OroPlugin\Search\Listener\FrontendProductGridEventListener:
+        arguments:
+            - '@oro_website_search.engine.parameters'
+            - '@Gally\OroPlugin\Service\ContextProvider'
+            - ['frontend-product-search-grid', 'frontend-catalog-allproducts-grid']
+        tags:
+            - { name: kernel.event_listener, event: oro_datagrid.search_datasource.result.after, method: onResultAfter }
 
     Gally\OroPlugin\Decorator\DisableNativeCategoryAutocomplete:
         decorates: oro_catalog.event_listener.search.add_category_to_product_autocomplete

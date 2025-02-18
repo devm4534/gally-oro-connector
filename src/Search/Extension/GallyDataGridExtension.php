@@ -15,14 +15,11 @@ declare(strict_types=1);
 namespace Gally\OroPlugin\Search\Extension;
 
 use Gally\OroPlugin\Search\SearchEngine;
-use Gally\OroPlugin\Service\ContextProvider;
 use Gally\Sdk\Entity\Metadata;
 use Gally\Sdk\Entity\SourceField;
 use Gally\Sdk\GraphQl\Request;
-use Gally\Sdk\GraphQl\Response;
 use Gally\Sdk\Service\SearchManager;
 use Oro\Bundle\DataGridBundle\Datagrid\Common\DatagridConfiguration;
-use Oro\Bundle\DataGridBundle\Datagrid\Common\MetadataObject;
 use Oro\Bundle\DataGridBundle\Datasource\DatasourceInterface;
 use Oro\Bundle\DataGridBundle\Extension\AbstractExtension;
 use Oro\Bundle\DataGridBundle\Extension\Sorter\Configuration;
@@ -36,15 +33,19 @@ class GallyDataGridExtension extends AbstractExtension
     public function __construct(
         private EngineParameters $engineParameters,
         private SearchManager $searchManager,
-        private ContextProvider $contextProvider,
+        private array $dataGridNames,
     ) {
+    }
+
+    public function addDataGridName(string $name): void
+    {
+        $this->dataGridNames[] = $name;
     }
 
     public function isApplicable(DatagridConfiguration $config): bool
     {
         return SearchEngine::ENGINE_NAME === $this->engineParameters->getEngineName()
-            && ('frontend-product-search-grid' === $config->getName()
-            || 'frontend-catalog-allproducts-grid' === $config->getName());
+            && \in_array($config->getName(), $this->dataGridNames, true);
     }
 
     public function visitDatasource(DatagridConfiguration $config, DatasourceInterface $datasource): void
@@ -53,15 +54,9 @@ class GallyDataGridExtension extends AbstractExtension
         $this->addSortFieldsFromGallyConfiguration($config);
     }
 
-    public function visitMetadata(DatagridConfiguration $config, MetadataObject $object): void
-    {
-        $this->addFiltersFromGallyResult($config);
-        $this->setAppliedSortingFromGallyResult($config);
-    }
-
     public function getPriority(): int
     {
-        return 100;
+        return 255;
     }
 
     private function addFilterFieldsFromGallyConfiguration(DatagridConfiguration $config): void
@@ -77,7 +72,7 @@ class GallyDataGridExtension extends AbstractExtension
 
         foreach ($filterableSourceField as $sourceField) {
             if (!\in_array($sourceField->getCode(), $proceed, true)) {
-                $fieldName = $sourceField->getCode();
+                $fieldName = SearchEngine::GALLY_FILTER_PREFIX . $sourceField->getCode();
                 $type = null;
                 $filter = [
                     'label' => $sourceField->getDefaultLabel(),
@@ -172,60 +167,5 @@ class GallyDataGridExtension extends AbstractExtension
 
         // Let gally define default sort by.
         $config->offsetSetByPath(Configuration::DISABLE_DEFAULT_SORTING_PATH, false);
-    }
-
-    private function addFiltersFromGallyResult(DatagridConfiguration $config): void
-    {
-        $gallyFilters = $this->contextProvider->getResponse()->getAggregations();
-        $currentFilters = $config->offsetGetByPath('[filters][columns]') ?? [];
-        $filters = [];
-
-        foreach ($currentFilters as $code => $filter) {
-            if (\in_array($code, ['sku', 'names'], true) || 'gally-select' === $filter['type']) {
-                $filters[$code] = $filter;
-            }
-        }
-
-        foreach ($gallyFilters as $gallyFilter) {
-            $filter = [
-                'data_name' => $gallyFilter['field'],
-                'label' => $gallyFilter['label'],
-                'visible' => true,
-                'disabled' => false,
-                'renderable' => true,
-            ];
-
-            if (Response::FILTER_TYPE_SLIDER === $gallyFilter['type']) {
-                $filter['type'] = 'price__price' === $gallyFilter['field'] ? 'frontend-product-price' : 'number-range';
-                $filters[$gallyFilter['field']] = $filter;
-            } elseif (Response::FILTER_TYPE_BOOLEAN === $gallyFilter['type']) {
-                $filter['type'] = 'boolean';
-                $filters[$gallyFilter['field']] = $filter;
-            } else {
-                foreach ($gallyFilter['options'] as $index => $option) {
-                    $gallyFilter['options'][$index]['data'] = $option['value'];
-                }
-                $filter['choices'] = $gallyFilter['options'];
-                $filter['options']['gally_options'] = $gallyFilter['options'];
-                $filter['options']['has_more'] = $gallyFilter['hasMore'];
-                $filter['type'] = 'gally-select';
-                $filters[$gallyFilter['field']] = $filter;
-            }
-        }
-
-        $config->offsetSetByPath('[filters][columns]', $filters);
-    }
-
-    private function setAppliedSortingFromGallyResult(DatagridConfiguration $config): void
-    {
-        $sortField = $this->contextProvider->getResponse()->getSortField();
-        $sortDirection = $this->contextProvider->getResponse()->getSortDirection();
-
-        if (Request::SORT_RELEVANCE_FIELD !== $sortField) {
-            $config->offsetSetByPath(
-                '[sorters][default]',
-                [$sortField => Request::SORT_DIRECTION_ASC === $sortDirection ? 'ASC' : 'DESC']
-            );
-        }
     }
 }

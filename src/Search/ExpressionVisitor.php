@@ -19,23 +19,37 @@ use Doctrine\Common\Collections\Expr\CompositeExpression;
 use Doctrine\Common\Collections\Expr\Expression;
 use Doctrine\Common\Collections\Expr\ExpressionVisitor as BaseExpressionVisitor;
 use Doctrine\Common\Collections\Expr\Value;
+use Gally\Sdk\Entity\SourceField;
 use Gally\Sdk\GraphQl\Request;
 use Oro\Bundle\ProductBundle\Entity\Product;
 use Oro\Bundle\SearchBundle\Query\Criteria\Criteria;
-use Oro\Bundle\SearchBundle\Query\Query;
 use Oro\Bundle\VisibilityBundle\Entity\VisibilityResolved\BaseVisibilityResolved;
 
 class ExpressionVisitor extends BaseExpressionVisitor
 {
+    private const GALLY_TYPE_AND = '_must';
+    private const GALLY_TYPE_OR = '_should';
+    private const GALLY_TYPE_NOT = '_not';
+
+    /** @var SourceField[] */
+    private array $selectSourceFields = [];
+    private ?string $searchQuery = null;
+
     public function __construct(
         private array $attributeMapping,
     ) {
     }
 
-    private ?string $searchQuery = null;
-
-    public function dispatch(Expression $expr, bool $isStitchedQuery = false, bool $isMainQuery = true)
+    public function setSelectSourceFields(array $selectSourceFields): void
     {
+        $this->selectSourceFields = $selectSourceFields;
+    }
+
+    public function dispatch(
+        Expression $expr,
+        bool $isStitchedQuery = false,
+        bool $isMainQuery = true,
+    ) {
         // Use main query parameter to flatten main and expression.
         switch (true) {
             case $expr instanceof CompositeExpression:
@@ -54,50 +68,96 @@ class ExpressionVisitor extends BaseExpressionVisitor
         bool $isStitchedQuery = false,
         bool $isMainQuery = true
     ): array {
-        $type = '_must';
+        $type = self::GALLY_TYPE_AND;
         if (CompositeExpression::TYPE_AND !== $expr->getType()) {
             $isMainQuery = false;
-            $type = '_should';
+            $type = self::GALLY_TYPE_OR;
         }
 
         $filters = [];
-        foreach ($expr->getExpressionList() as $expression) {
-            $filter = $this->dispatch($expression, $isStitchedQuery, $isMainQuery);
-            if ($filter) {
-                if ($isMainQuery) {
-                    foreach ($filter as $field => $data) {
-                        if (!\array_key_exists($field, $filters)) {
-                            $filters[$field] = $data;
-                        } else {
-                            $filters[Request::FILTER_TYPE_BOOLEAN] = [
-                                $type => [
-                                    [$field => $filters[$field]],
-                                    [$field => $data],
-                                ],
-                            ];
-                            if (Request::FILTER_TYPE_BOOLEAN !== $field) {
-                                unset($filters[$field]);
+        foreach (['queryFilters', 'facetFilters'] as $filterType) {
+            foreach ($expr->getExpressionList() as $expression) {
+                $exprFilters = $this->dispatch($expression, $isStitchedQuery, $isMainQuery);
+                if ($isStitchedQuery) {
+                    foreach ($exprFilters[$filterType] ?? [] as $field => $filter) {
+                        if (\array_key_exists($field, $filters[$filterType] ?? [])) {
+                            if (1 === \count($filters[$filterType][$field])) {
+                                $filters[$filterType][$field] = [$filters[$filterType][$field], $filter];
+                            } else {
+                                $filters[$filterType][$field] = [...$filters[$filterType][$field], $filter];
                             }
+                        } else {
+                            $filters[$filterType][$field] = $filter;
                         }
                     }
                 } else {
-                    $filters[] = $filter;
+                    foreach ($exprFilters[$filterType] ?? [] as $filter) {
+                        $filters[$filterType][] = $filter;
+                    }
                 }
             }
-        }
-        $filters = array_filter($filters);
 
-        return $isMainQuery
-            ? $filters
-            : [Request::FILTER_TYPE_BOOLEAN => [$type => $filters]];
+            foreach ($filters[$filterType] ?? [] as $filterData) {
+                if (\count($filterData) > 1) {
+                    $isMainQuery = false; // We can't stitch multiple filter on the same field.
+                }
+            }
+
+            $rationalizedFilters = [];
+            foreach ($filters[$filterType] ?? [] as $field => $filterData) {
+                if (\count($filterData) > 1) {
+                    foreach ($filterData as $filterItem) {
+                        $rationalizedFilters[] = \is_string($field) ? [$field => $filterItem] : $filterItem;
+                    }
+                } elseif (\is_string($field) && $isMainQuery) {
+                    $rationalizedFilters[$field] = $filterData;
+                } else {
+                    $rationalizedFilters[] = \is_string($field) ? [$field => $filterData] : $filterData;
+                }
+            }
+            $filters[$filterType] = $rationalizedFilters;
+        }
+
+        if (!$isMainQuery) {
+            if (empty($filters['facetFilters'])) {
+                $boolFilter = [
+                    Request::FILTER_TYPE_BOOLEAN => [
+                        $type => $filters['queryFilters'] ?? [],
+                    ],
+                ];
+            } elseif (empty($filters['queryFilters'])) {
+                $boolFilter = [
+                    Request::FILTER_TYPE_BOOLEAN => [
+                        $type => $filters['facetFilters'],
+                    ],
+                ];
+            } else {
+                $boolFilter = [
+                    Request::FILTER_TYPE_BOOLEAN => [
+                        $type => [
+                            \count($filters['queryFilters']) > 1
+                                ? [Request::FILTER_TYPE_BOOLEAN => [$type => [$filters['queryFilters']]]]
+                                : $filters['queryFilters'],
+                            \count($filters['facetFilters']) > 1
+                                ? [Request::FILTER_TYPE_BOOLEAN => [$type => $filters['facetFilters']]]
+                                : $filters['facetFilters'],
+                        ],
+                    ],
+                ];
+            }
+            $filters['queryFilters'] = $isStitchedQuery ? $boolFilter : [$boolFilter];
+            $filters['facetFilters'] = [];
+        }
+
+        return array_filter($filters);
     }
 
     public function walkComparison(Comparison $comparison, bool $isStitchedQuery = false): ?array
     {
-        [$type, $field] = $this->explodeFieldTypeName($comparison->getField());
+        [$type, $field, $comeFromFacet] = $this->explodeFieldTypeName($comparison->getField());
         $value = $this->dispatch($comparison->getValue(), $isStitchedQuery);
         $operator = $this->getGallyOperator($comparison->getOperator());
-        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT') || '<>' === $comparison->getOperator();
+        $hasNegation = str_starts_with($comparison->getOperator(), 'NOT') || \in_array($comparison->getOperator(), ['<>', 'NIN'], true);
 
         if ('all_text' === $field) {
             $this->searchQuery = $value;
@@ -107,7 +167,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
 
         if ('id' === $field) {
             $type = 'text';
-        } elseif ('inv_status' === $field || 'stock__status' === $field) {
+        } elseif ('inv_status' === $field || 'inventory_status' === $field || 'stock__status' === $field) {
             if (\count($value) > 1) {
                 return null; // if we want in stock and out of stock product, we do not need this filter.
             }
@@ -123,29 +183,41 @@ class ExpressionVisitor extends BaseExpressionVisitor
             $type = 'text';
             $operator = Request::FILTER_OPERATOR_IN;
         } elseif ('category__id' === $field && Request::FILTER_OPERATOR_IN === $operator) {
-            // Category filter do not support in operator
-            $value = array_map(
-                fn ($value) => $this->dispatch(new Comparison($field, '=', $value), $isStitchedQuery),
-                $value
+            // Category filter do not support "in" operator
+            return $this->dispatch(
+                new CompositeExpression(
+                    $hasNegation ? CompositeExpression::TYPE_AND : CompositeExpression::TYPE_OR,
+                    array_map(
+                        fn ($value) => new Comparison($field, $hasNegation ? '<>' : '=', $value),
+                        $value
+                    )
+                ),
+                $isStitchedQuery
             );
-            $field = Request::FILTER_TYPE_BOOLEAN;
-            $operator = '_should';
         } elseif (str_starts_with($field, 'visibility_customer.')) {
             [$field, $customerId] = explode('.', $field);
             $type = 'text';
             if (Request::FILTER_OPERATOR_EXISTS === $operator) {
-                $field = Request::FILTER_TYPE_BOOLEAN;
-                $operator = '_should';
-                $value = [
-                    $this->dispatch(new Comparison('visible_for_customer', '=', $customerId), $isStitchedQuery),
-                    $this->dispatch(new Comparison('hidden_for_customer', '=', $customerId), $isStitchedQuery),
-                ];
-            } elseif (Request::FILTER_OPERATOR_EQ == $operator) {
+                return $this->dispatch(
+                    new CompositeExpression(
+                        $hasNegation ? CompositeExpression::TYPE_AND : CompositeExpression::TYPE_OR,
+                        [
+                            new Comparison('visible_for_customer', $hasNegation ? '<>' : '=', $customerId),
+                            new Comparison('hidden_for_customer', $hasNegation ? '<>' : '=', $customerId),
+                        ],
+                    ),
+                    $isStitchedQuery
+                );
+            }
+            if (Request::FILTER_OPERATOR_EQ == $operator) {
                 $field = BaseVisibilityResolved::VISIBILITY_HIDDEN === $value
                     ? 'hidden_for_customer'
                     : 'visible_for_customer';
                 $value = $customerId;
             }
+        } elseif (\array_key_exists($field, $this->selectSourceFields)) {
+            $field .= '__value';
+            $type = 'text';
         }
 
         if ('bool' === $type) {
@@ -169,9 +241,11 @@ class ExpressionVisitor extends BaseExpressionVisitor
                 ],
             ];
 
-        return $hasNegation
-            ? [Request::FILTER_TYPE_BOOLEAN => ['_not' => [$rule]]]
+        $rule = $hasNegation
+            ? [Request::FILTER_TYPE_BOOLEAN => [self::GALLY_TYPE_NOT => [$rule]]]
             : $rule;
+
+        return [($comeFromFacet ? 'facetFilters' : 'queryFilters') => $isStitchedQuery ? $rule : [$rule]];
     }
 
     public function walkValue(Value $value): mixed
@@ -185,7 +259,7 @@ class ExpressionVisitor extends BaseExpressionVisitor
     }
 
     /**
-     * @return array [string, string]
+     * @return array [string, string, bool]
      */
     private function explodeFieldTypeName(string $field): array
     {
@@ -197,13 +271,17 @@ class ExpressionVisitor extends BaseExpressionVisitor
             }
         }
 
-        return [$type, $this->attributeMapping[$field] ?? $field];
+        // Gally facets are prefixed by "gally__".
+        $comeFromFacet = str_contains($field, SearchEngine::GALLY_FILTER_PREFIX);
+        $field = str_replace(SearchEngine::GALLY_FILTER_PREFIX, '', $field);
+
+        return [$type, $this->attributeMapping[$field] ?? $field, $comeFromFacet];
     }
 
     private function getGallyOperator(string $operator): string
     {
         return match ($operator) {
-            'IN', 'NOT IN' => Request::FILTER_OPERATOR_IN,
+            'IN', 'NOT IN', 'NIN' => Request::FILTER_OPERATOR_IN,
             'LIKE', 'NOT LIKE' => Request::FILTER_OPERATOR_MATCH,
             'EXISTS', 'NOT EXISTS' => Request::FILTER_OPERATOR_EXISTS,
             '>' => Request::FILTER_OPERATOR_GT,
