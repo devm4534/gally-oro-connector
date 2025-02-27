@@ -1,0 +1,30 @@
+services:
+    Gally\OroPlugin\Async\Processor\InstallIndexProcessor:
+        arguments:
+            - '@Gally\OroPlugin\Indexer\Indexer'
+        calls:
+            - [setLogger, ['@logger']]
+        tags:
+            - { name: oro_message_queue.client.message_processor }
+
+    Gally\Async\Processor\WebsiteSearchReindexGranulizedProcessor:
+        class: Oro\Component\MessageQueue\Job\DelayedJobRunnerDecoratingProcessor
+        arguments:
+            - '@oro_message_queue.job.runner'
+            - '@oro_website_search.async.reindex_processor.granulized'
+        tags:
+            - { name: oro_message_queue.client.message_processor, topicName: !php/const Gally\OroPlugin\Async\Topic\WebsiteSearchReindexGranulizedJobAwareTopic::NAME }
+
+    Gally\OroPlugin\Async\Processor\WebsiteSearchReindexProcessor:
+        decorates: oro_website_search.async.reindex_processor
+        arguments:
+            - '@oro_website_search.async.reindex_processor.job_aware'
+            - '@oro_website_search.async.reindex_processor.granulized'
+            - '@oro_website_search.async.indexer.message_granularizer.reindex'
+            - '@oro_message_queue.client.message_producer'
+            - '@event_dispatcher'
+            - '@oro_message_queue.job.runner'
+            - '@oro_message_queue.job.dependent_job_service'
+            - '@Gally\OroPlugin\Indexer\Registry\IndexRegistry'
+            - '@oro_website_search.engine.parameters'
+            - '@.inner'

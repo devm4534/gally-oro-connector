@@ -1,0 +1,10 @@
+services:
+    _defaults:
+        tags:
+            - { name: oro_message_queue.topic }
+
+    Gally\OroPlugin\Async\Topic\GallyReindexFinishedTopic: ~
+
+    Gally\OroPlugin\Async\Topic\WebsiteSearchReindexGranulizedJobAwareTopic:
+        arguments:
+            - '@Oro\Bundle\WebsiteSearchBundle\Async\Topic\WebsiteSearchReindexGranulizedTopic'

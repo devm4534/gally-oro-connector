@@ -16,7 +16,6 @@ namespace Gally\OroPlugin\Indexer;
 
 use Gally\OroPlugin\Config\ConfigManager;
 use Gally\OroPlugin\Convertor\LocalizationConvertor;
-use Gally\OroPlugin\Entity\IndexBatchCount;
 use Gally\OroPlugin\Indexer\Event\BeforeSaveIndexDataEvent;
 use Gally\OroPlugin\Indexer\Provider\CatalogProvider;
 use Gally\OroPlugin\Indexer\Provider\SourceFieldProvider;
@@ -50,6 +49,8 @@ class Indexer extends AbstractIndexer
 
     /** @var Index[]|string[] */
     private array $indicesByLocale;
+
+    private bool $isFullContext = false;
 
     private AbstractIndexer $fallBackIndexer;
 
@@ -138,6 +139,7 @@ class Indexer extends AbstractIndexer
         $context = $event->getContext();
         $indicesByLocale = [];
         $isFullContext = empty($this->getContextEntityIds($context));
+        $this->isFullContext = $isFullContext;
 
         foreach ($websiteIdsToIndex as $websiteId) {
             if ($this->configManager->isGallyEnabled($websiteId)) {
@@ -177,32 +179,23 @@ class Indexer extends AbstractIndexer
             return;
         }
 
-        // Sync full reindexation
-        if (empty($contextEntityIds)) {
+        /**
+         * - Sync full reindexation
+         * - If a reindex is launched for only one website and for an entity class with less than ReindexMessageGranularizer::$chunkSize (100), in scheduled mode and without ids in parameters,
+         *  the first (and the only one) message is directly consumed, and the variable $contextEntityIds is filled with ids, so we are not able at this point to know if it's full or partial reindex.
+         *  That's why we use the variable $this->isFullContext, this variable is set before the dispatch of the reindex in several messages.
+         */
+        if (empty($contextEntityIds) || $this->isFullContext) {
             foreach ($this->indicesByLocale[$websiteId][$entityClass] as $index) {
                 $this->installIndex($index);
             }
         }
+    }
 
-        // Async full reindexation, we need to check if all message has been received.
-        if ($context['is_full_indexation'] ?? false) {
-            $batchCountManager = $this->doctrineHelper->getEntityManager(IndexBatchCount::class);
-            $totalMessageExpected = $context['message_count'][$websiteId] ?? $context['message_count']['global'];
-            foreach ($this->indicesByLocale[$websiteId][$entityClass] as $index) {
-                $index = \is_string($index) ? $index : $index->getName();
-                /** @var IndexBatchCount $messageCount */
-                $messageCount = $batchCountManager->find(IndexBatchCount::class, $index) ?: new IndexBatchCount($index);
-
-                if ($messageCount->getMessageCount() < $totalMessageExpected) {
-                    $messageCount->increment();
-                    $batchCountManager->persist($messageCount);
-                } else {
-                    $this->installIndex($index);
-                    $batchCountManager->remove($messageCount);
-                }
-                $batchCountManager->flush();
-            }
-        }
+    public function installIndex(Index|string $index): void
+    {
+        $this->indexOperation->refreshIndex($index);
+        $this->indexOperation->installIndex($index);
     }
 
     protected function reindexEntityClass($entityClass, array $context)
@@ -318,12 +311,6 @@ class Indexer extends AbstractIndexer
         }
 
         return $indicesByLocale;
-    }
-
-    protected function installIndex(Index|string $index): void
-    {
-        $this->indexOperation->refreshIndex($index);
-        $this->indexOperation->installIndex($index);
     }
 
     /**
