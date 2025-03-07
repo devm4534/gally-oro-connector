@@ -111,13 +111,20 @@ class SourceFieldOptionProvider implements ProviderInterface
         $labels = [];
 
         foreach ($translations as $translation) {
-            foreach ($this->localizedCatalogsByLocale[$translation->getLocale()] ?? [] as $localizedCatalog) {
+            $localeCode = $translation->getLocale();
+            $fallbackLocaleCode = substr($localeCode, 0, 2);
+            $localizedCatalogs = $this->localizedCatalogsByLocale[$localeCode]
+                ?? $this->localizedCatalogsByLocale[$fallbackLocaleCode]
+                ?? [];
+            foreach ($localizedCatalogs as $localizedCatalog) {
                 $labels[$translation->getForeignKey()][] = new Label(
                     $localizedCatalog,
                     $translation->getContent()
                 );
             }
         }
+
+        $this->entityManager->clear();
 
         return $labels;
     }

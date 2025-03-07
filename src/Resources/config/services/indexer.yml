@@ -28,7 +28,7 @@ services:
             - '@oro_entity_config.provider.entity'
             - '@Gally\OroPlugin\Indexer\Provider\CatalogProvider'
             - '@oro_website_search.placeholder.registry'
-            - '@translator'
+            - '@Gally\OroPlugin\Repository\TranslationRepository'
             - '@oro_locale.settings'
             - '%gally_config.entity_mapping%'
             - '%gally_config.attribute_type_mapping%'
