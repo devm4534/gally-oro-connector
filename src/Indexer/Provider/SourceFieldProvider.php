@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Gally\OroPlugin\Indexer\Provider;
 
+use Gally\OroPlugin\Repository\TranslationRepository;
 use Gally\Sdk\Entity\Label;
 use Gally\Sdk\Entity\LocalizedCatalog;
 use Gally\Sdk\Entity\Metadata;
@@ -25,7 +26,6 @@ use Oro\Bundle\EntityConfigBundle\Provider\ConfigProvider;
 use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 use Oro\Bundle\SearchBundle\Provider\SearchMappingProvider;
 use Oro\Bundle\WebsiteSearchBundle\Placeholder\PlaceholderRegistry;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Gally Catalog data provider.
@@ -41,7 +41,7 @@ class SourceFieldProvider implements ProviderInterface
         private ConfigProvider $configProvider,
         private CatalogProvider $catalogProvider,
         private PlaceholderRegistry $placeholderRegistry,
-        private TranslatorInterface $translator,
+        private TranslationRepository $translationRepository,
         private LocaleSettings $localeSettings,
         private array $entityCodeMapping,
         private array $typeMapping,
@@ -73,6 +73,10 @@ class SourceFieldProvider implements ProviderInterface
 
             yield new SourceField($metadata, 'id', 'text', 'Id', [], true);
 
+            $localizedLabels = $this->preloadLabels($entityClass, $entityConfig['fields']);
+            $defaultLocale = $this->getDefaultLocale();
+            $fallbackDefaultLocale = substr($defaultLocale, 0, 2);
+
             foreach ($entityConfig['fields'] as $fieldData) {
                 if (\in_array($fieldData['name'], $this->fieldToSkip, true)) {
                     continue;
@@ -82,10 +86,8 @@ class SourceFieldProvider implements ProviderInterface
 
                 try {
                     $fieldConfig = $this->configProvider->getConfig($entityClass, $fieldName);
-                    $labelKey = $fieldConfig->get('label');
                 } catch (RuntimeException) {
                     $fieldConfig = null;
-                    $labelKey = $fieldName;
                 }
 
                 /** @var FieldConfigId $fieldConfigId */
@@ -95,7 +97,10 @@ class SourceFieldProvider implements ProviderInterface
                     $fieldData['name'],
                     $fieldConfigId ? $fieldConfigId->getFieldType() : $fieldData['type']
                 );
-                $defaultLabel = $this->translator->trans($labelKey, [], null, $this->getDefaultLocale());
+
+                $defaultLabel = $localizedLabels[$fieldName][$defaultLocale]
+                    ?? $localizedLabels[$fieldName][$fallbackDefaultLocale]
+                    ?? $fieldData['name'];
 
                 if (!\array_key_exists($fieldData['type'], $this->typeMapping)) {
                     throw new \LogicException(sprintf('Type %s not managed for field %s of entity %s.', $fieldData['type'], $fieldName, $entityClass));
@@ -106,7 +111,7 @@ class SourceFieldProvider implements ProviderInterface
                     $fieldName,
                     $fieldType,
                     $defaultLabel,
-                    $this->getLabels($labelKey, $defaultLabel),
+                    $this->getLabels($localizedLabels[$fieldName] ?? [], $defaultLabel),
                     \in_array($fieldName, $this->oroSystemAttribute, true) || 'product' !== $metadata->getEntity()
                 );
             }
@@ -133,6 +138,34 @@ class SourceFieldProvider implements ProviderInterface
         }
 
         return $this->attributeMapping[$fieldName] ?? $fieldName;
+    }
+
+    private function preloadLabels(string $entityClass, array $fieldConfigs): array
+    {
+        $labelKeys = [];
+        foreach ($fieldConfigs as $fieldData) {
+            if (\in_array($fieldData['name'], $this->fieldToSkip, true)) {
+                continue;
+            }
+
+            $fieldName = $this->cleanFieldName($fieldData['name']);
+
+            try {
+                $fieldConfig = $this->configProvider->getConfig($entityClass, $fieldName);
+                $labelKey = $fieldConfig->get('label');
+            } catch (RuntimeException) {
+                $labelKey = $fieldName;
+            }
+
+            $labelKeys[$labelKey] = $fieldName;
+        }
+
+        $translations = [];
+        foreach ($this->translationRepository->getTranslationsForKeys(array_keys($labelKeys)) as $row) {
+            $translations[$labelKeys[$row['translation_key']]][$row['language_code']] = $row['value'];
+        }
+
+        return $translations;
     }
 
     private function getGallyType(Metadata $metadata, string $fieldName, string $fieldType): string
@@ -166,19 +199,21 @@ class SourceFieldProvider implements ProviderInterface
     /**
      * @return Label[]
      */
-    private function getLabels(string $labelKey, string $defaultLabel): array
+    private function getLabels(array $localizedLabels, string $defaultLabel): array
     {
         $defaultLocale = $this->getDefaultLocale();
-        $labels = [];
+        $sourceFieldLabels = [];
         foreach ($this->localizedCatalogs as $localizedCatalog) {
             if ($localizedCatalog->getLocale() != $defaultLocale) {
-                $label = $this->translator->trans($labelKey, [], null, $localizedCatalog->getLocale());
+                $localeCode = $localizedCatalog->getLocale();
+                $fallbackLocale = substr($localeCode, 0, 2);
+                $label = $localizedLabels[$localeCode] ?? $localizedLabels[$fallbackLocale] ?? $defaultLabel;
                 if ($label !== $defaultLabel) {
-                    $labels[] = new Label($localizedCatalog, $label);
+                    $sourceFieldLabels[] = new Label($localizedCatalog, $label);
                 }
             }
         }
 
-        return $labels;
+        return $sourceFieldLabels;
     }
 }
